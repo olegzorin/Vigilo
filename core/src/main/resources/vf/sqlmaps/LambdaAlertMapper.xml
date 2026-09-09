@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaAlertMapper">
+    <resultMap id="alertMap" type="dev.olegz.vf.core.domain.alert.LambdaAlert">
+        <id property="alertId" column="alert_id"
+            typeHandler="dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler"/>
+        <result property="idempotencyKey" column="idempotency_key"/>
+        <result property="payloadHash" column="payload_hash"/>
+        <result property="organizationId" column="organization_id"/>
+        <result property="locationId" column="location_id"/>
+        <result property="deviceUuid" column="device_uuid"/>
+        <result property="alertType" column="alert_type"/>
+        <result property="severity" column="severity"/>
+        <result property="status" column="status"/>
+        <result property="ruleId" column="rule_id"/>
+        <result property="occurredAt" column="occurred_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="lambdaAssignmentId" column="lambda_assignment_id"/>
+        <result property="lambdaId" column="lambda_id"/>
+        <result property="lambdaVersionId" column="lambda_version_id"/>
+        <result property="runId" column="run_id"/>
+        <result property="eventKey" column="event_key"/>
+        <result property="changesJson" column="changes_json"
+            typeHandler="dev.olegz.vf.registry.dao.handlers.JsonStringTypeHandler"/>
+    </resultMap>
+
+    <insert id="insertAlert">
+        INSERT INTO lambda_alerts (
+            alert_id, idempotency_key, payload_hash, organization_id, location_id, device_uuid,
+            alert_type, severity, status, rule_id, occurred_at, created_at,
+            lambda_assignment_id, lambda_id, lambda_version_id, run_id, event_key, changes_json)
+        SELECT
+            #{alertId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler},
+            #{idempotencyKey}, #{payloadHash}, l.organization_id, #{locationId}, #{deviceUuid},
+            #{alertType}, #{severity}, #{status}, #{ruleId}, #{occurredAt}, CURRENT_TIMESTAMP(3),
+            #{lambdaAssignmentId}, #{lambdaId}, #{lambdaVersionId}, #{runId}, #{eventKey},
+            #{changesJson,typeHandler=dev.olegz.vf.registry.dao.handlers.JsonStringTypeHandler}
+        FROM locations l
+        WHERE l.location_id = #{locationId} AND l.deleted_at IS NULL
+    </insert>
+
+    <select id="selectAlert" resultMap="alertMap">
+        SELECT alert_id, idempotency_key, payload_hash, organization_id, location_id, device_uuid,
+            alert_type, severity, status, rule_id, occurred_at, created_at,
+            lambda_assignment_id, lambda_id, lambda_version_id, run_id, event_key, changes_json
+        FROM lambda_alerts
+        WHERE idempotency_key = #{idempotencyKey}
+          AND lambda_assignment_id = #{lambdaAssignmentId}
+    </select>
+</mapper>

@@ -1,0 +1,47 @@
+**/target
+**/.DS_Store
+**/tree.txt
+**/*.iml
+
+# Build artifact: maven copies resources to an unexpanded ${VF_HOME} path
+**/${VF_HOME}
+
+# Logs must go to ~/.myprojects/vigilo/logs, never the project root
+/logs/
+
+# Datasource local storage ignored files
+.idea/**/dataSources/
+.idea/**/dataSources.xml
+.idea/**/dataSources.local.xml
+.idea/**/data_source_mapping.xml
+.idea/**/sqldialects.xml
+.idea/**/dbnavigator.xml
+.idea/db-forest-config.xml
+
+# User-specific stuff
+.idea/workspace.xml
+.idea/jarRepositories.xml
+
+# Machine-specific / IDE-derived state (SDK names, bytecode targets, Maven project list)
+.idea/encodings.xml
+.idea/compiler.xml
+.idea/misc.xml
+.idea/inspectionProfiles/
+.idea/libraries/
+
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/shelf
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/artifacts/
+
+.claude/settings.local.json
+tmpclaude*
+
+# Machine-local credentials
+/config/properties/aws.properties
+/config/properties/database.properties
+
+.vscode
+.vscode/*

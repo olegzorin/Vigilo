@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaEventReceiptMapper">
+    <!-- Assignment id 0 is the payload-free marker that freezes the fan-out set. -->
+    <insert id="insertMarker">
+        INSERT INTO lambda_event_receipts (event_id, lambda_assignment_id, status, created_at)
+        VALUES (#{eventId}, 0, 'OPEN', CURRENT_TIMESTAMP(3))
+        ON CONFLICT (event_id, lambda_assignment_id) DO NOTHING
+    </insert>
+
+    <insert id="insertAssignments">
+        INSERT INTO lambda_event_receipts (event_id, lambda_assignment_id, status, created_at)
+        VALUES
+        <foreach collection="lambdaAssignmentIds" item="id" separator=",">
+            (#{eventId}, #{id}, 'PENDING', CURRENT_TIMESTAMP(3))
+        </foreach>
+        ON CONFLICT (event_id, lambda_assignment_id) DO NOTHING
+    </insert>
+
+    <select id="selectAssignmentIds" resultType="int">
+        SELECT lambda_assignment_id
+        FROM lambda_event_receipts
+        WHERE event_id = #{eventId} AND lambda_assignment_id &gt; 0
+        ORDER BY lambda_assignment_id
+    </select>
+
+    <select id="selectForUpdate" resultType="dev.olegz.vf.core.domain.lambdarun.LambdaEventReceipt">
+        SELECT event_id, lambda_assignment_id, status, run_id
+        FROM lambda_event_receipts
+        WHERE event_id = #{eventId} AND lambda_assignment_id = #{lambdaAssignmentId}
+        FOR UPDATE
+    </select>
+
+    <update id="updateAssignmentAdmitted">
+        UPDATE lambda_event_receipts
+        SET status = 'ADMITTED', run_id = #{runId}
+        WHERE event_id = #{eventId} AND lambda_assignment_id = #{lambdaAssignmentId} AND status = 'PENDING'
+    </update>
+
+    <update id="updateAssignmentCompleted">
+        UPDATE lambda_event_receipts
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP(3)
+        WHERE event_id = #{eventId} AND lambda_assignment_id = #{lambdaAssignmentId}
+    </update>
+
+    <select id="countPendingAssignments" resultType="int">
+        SELECT COUNT(*)
+        FROM lambda_event_receipts
+        WHERE event_id = #{eventId} AND lambda_assignment_id &gt; 0 AND status != 'COMPLETED'
+    </select>
+
+    <update id="updateMarkerCompleted">
+        UPDATE lambda_event_receipts
+        SET status = 'COMPLETED', completed_at = CURRENT_TIMESTAMP(3)
+        WHERE event_id = #{eventId} AND lambda_assignment_id = 0
+    </update>
+
+    <select id="selectCompletedEventIdsBefore" resultType="string">
+        SELECT event_id
+        FROM lambda_event_receipts
+        WHERE lambda_assignment_id = 0 AND completed_at &lt; #{cutoff}
+        ORDER BY completed_at
+        LIMIT #{limit}
+    </select>
+
+    <delete id="deleteEvents">
+        DELETE FROM lambda_event_receipts
+        WHERE event_id IN
+        <foreach collection="eventIds" item="eventId" open="(" separator="," close=")">
+            #{eventId}
+        </foreach>
+    </delete>
+</mapper>

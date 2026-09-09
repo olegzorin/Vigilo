@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://code.jquery.com/jquery-3.4.0.min.js" integrity="sha256-BJeo0qm959uMBGb65z40ejJYGSgR7REI4+CW1fNKwOg=" crossorigin="anonymous"></script>
+    <style>table{font-size:12px}body{text-align:center;font-family:Arial,Helvtica,sans-serif}table{width:100%;margin:20px auto}table,td,th{border-collapse:collapse}thead{background:#e0e0e0}td,th{padding:3px 10px;border:solid 1px;text-align:center;word-wrap:break-word;max-width: 206px}tr{transition:.2s}tr:nth-child(even){background:#f7f7f7}tr:hover{background:#eaeaea}tr>td:nth-child(2){word-break:break-word}col{min-width:300px}table>tbody tr:nth-child(even){background:#e8e8e8}table>tbody tr td:nth-child(2),table>tbody tr td:nth-child(3){width:15%}#reset{padding:1em;text-decoration:none}</style>
+    <title>Total</title>
+</head>
+<body>
+    <button id="button">RESET TABLE</button>
+    <input type="checkbox" name="issues" id="issues"><label for="issues">Issues</label>
+    <table id="listeners" class="table table-bordered"></table>
+</body>
+<script>
+    (function ($) {
+        $('button').click(function() {
+            tabledata();
+        });
+
+        let tabledata = function() {
+            let issues = document.querySelector('#issues'),
+                url = "./total?" + (issues.checked ? "issues" : "listeners") + "=true",
+                columns = [],
+                columnNames = [],
+                tableHeadItemsCount = 1,
+                listenersNum,
+                listenersData,
+                table = $('table'),
+                colgroup = $('<colgroup></colgroup>'),
+                theadRow = $('<tr></tr>'),
+                thead = $('<thead class="thead-light"></thead>'),
+                tbody = $('<tbody></tbody>'),
+                body = $('body'),
+                rows;
+
+            table.html('');
+
+            $.get(url, function (data) {
+                listenersData = issues.checked ? data['issues'] : data['listeners'];
+                if (typeof listenersData === 'undefined') {
+                   table.text('Nothing Found');
+                   return;
+                }
+
+                listenersNum = listenersData.length;
+
+                for (let i = 0; i < listenersNum; i++) {
+                    tableHeadItemsCount = listenersData[i];
+
+                    $.each(tableHeadItemsCount, function(column, value) {
+                        let newName =  column.split(/(?=[A-Z])/).toString().replace(/,/g, ' ').toLowerCase();
+                        let found = $.inArray(newName, columnNames);
+
+                        if (found < 0) {
+                            columns.push(column);
+                            columnNames.push(newName);
+                        }
+                    });
+                }
+
+                $.each(listenersData, function(k, array) {
+                    let row = $('<tr></tr>').appendTo(table);
+
+                    for (let i = 0; i < columns.length; i++) {
+                        let cell = columns[i],
+                            current = array,
+                            cellData = current[cell];
+
+                        if (cellData == undefined) {
+                            cellData = '';
+                        }
+
+                        $('<td></td>').text(cellData).appendTo(row);
+                    }
+                });
+
+                $.each(columnNames, function(key, value) {
+                    $('<th></th>').text(value).appendTo(theadRow);
+
+                    theadRow.appendTo(thead);
+                    thead.appendTo(table);
+
+                    $('#listeners > colgroup').append('<col>');
+                });
+            })
+            .fail(function() {
+                table.text('Nothing Found');
+            });
+        }
+
+        tabledata();
+    } (jQuery));
+</script>
+</html>

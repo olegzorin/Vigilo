@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaAssignmentMapper">
+    <resultMap id="lambdaEntityMap" type="dev.olegz.vf.core.domain.lambdaversion.Lambda">
+        <id property="lambdaId" column="lambda_id"/>
+        <result property="lambdaName" column="name"/>
+        <result property="description" column="description"/>
+        <result property="metadata" column="metadata"
+                typeHandler="dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler"/>
+        <result property="devTeamId" column="dev_team_id"/>
+        <result property="codeUploadId" column="code_upload_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="maxVersion" column="max_version"/>
+        <result property="maxSequence" column="max_sequence"/>
+    </resultMap>
+
+    <resultMap id="lambdaAssignmentEntityMap"
+               type="dev.olegz.vf.core.domain.lambdaassignment.LambdaAssignment">
+        <id property="lambdaAssignmentId" column="lambda_assignment_id"/>
+        <result property="lambdaId" column="lambda_id"/>
+        <result property="locationId" column="location_id"/>
+        <result property="endDate" column="end_date"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="assignmentDate" column="assignment_date"/>
+        <result property="testing" column="is_testing" javaType="boolean"/>
+        <association property="lambda" resultMap="lambdaEntityMap" columnPrefix="lambda_"/>
+    </resultMap>
+
+    <resultMap id="lambdaAssignmentResultMap"
+               type="dev.olegz.vf.core.domain.lambdaassignment.LambdaAssignment">
+        <id property="lambdaAssignmentId" column="lambda_assignment_id"/>
+        <result property="lambdaId" column="lambda_id"/>
+        <result property="locationId" column="location_id"/>
+        <result property="endDate" column="end_date"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="assignmentDate" column="assignment_date"/>
+        <result property="testing" column="is_testing" javaType="boolean"/>
+        <result property="lambdaVersionId" column="lambda_version_id"/>
+        <association property="lambda" javaType="dev.olegz.vf.core.domain.lambdaversion.Lambda">
+            <id property="lambdaId" column="lambda_id"/>
+            <result property="lambdaName" column="name"/>
+            <result property="devTeamId" column="dev_team_id"/>
+        </association>
+        <association property="lambdaVersion" javaType="dev.olegz.vf.core.domain.lambdaversion.LambdaVersion">
+            <id property="lambdaVersionId" column="lambda_version_id"/>
+            <result property="status" column="lambda_version_status"/>
+            <result property="published" column="lambda_version_published"/>
+            <result property="latest" column="lambda_version_latest"/>
+            <result property="functionStartDate" column="function_start_date"/>
+            <result property="version" column="lambda_version"/>
+            <result property="lambdaId" column="lambda_id"/>
+            <result property="trigger" column="lambda_trigger"/>
+            <result property="schedule" column="schedule"
+                    typeHandler="dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler"/>
+            <result property="arch" column="arch"/>
+            <result property="timeout" column="timeout"/>
+            <result property="memory" column="memory"/>
+            <result property="createdAt" column="created_at"/>
+            <result property="statusDate" column="status_date"/>
+            <result property="whatsnew" column="whatsnew"/>
+        </association>
+    </resultMap>
+
+    <sql id="lambdaAssignmentCols">
+        i.lambda_assignment_id, i.lambda_id, i.assignment_date, i.is_testing, i.end_date, i.deleted_at,
+        i.location_id,
+        b.dev_team_id, b.name,
+        v.lambda_version_id, v.schedule, v.lambda_trigger, v.function_start_date, v.memory, v.timeout,
+        v.is_public AS "lambda_version_published", v.latest_status AS "lambda_version_latest",
+        h.status AS "lambda_version_status", h.arch, h.lambda_version,
+        h.created_at, h.status_date, h.whatsnew
+    </sql>
+
+    <insert id="insertLambdaAssignment" useGeneratedKeys="true" keyProperty="lambdaAssignmentId">
+        INSERT INTO lambda_assignments
+        SET lambda_id = #{lambdaId},
+            location_id = #{locationId},
+            is_testing = #{testing},
+            assignment_date = #{assignmentDate},
+            end_date = #{endDate}
+    </insert>
+
+    <update id="updateLambdaAssignment">
+        UPDATE lambda_assignments
+        SET end_date = #{endDate}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND deleted_at IS NULL
+    </update>
+
+    <update id="markLambdaAssignmentDeleted">
+        UPDATE lambda_assignments
+        SET end_date = #{deletedAt}, deleted_at = #{deletedAt}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND deleted_at IS NULL
+    </update>
+
+    <select id="selectConcurrentLambdaAssignments" resultMap="lambdaAssignmentResultMap" fetchSize="10">
+        SELECT lambda_assignment_id, lambda_id, assignment_date, is_testing, end_date, deleted_at, location_id
+        FROM lambda_assignments
+        WHERE lambda_id = #{lambdaId}
+          AND deleted_at IS NULL
+          AND location_id = #{locationId}
+    </select>
+
+    <select id="selectLambdaAssignment" resultMap="lambdaAssignmentEntityMap" fetchSize="10">
+        SELECT i.lambda_assignment_id, i.lambda_id, i.is_testing, i.assignment_date,
+               i.location_id, i.end_date, i.deleted_at,
+               b.lambda_id AS lambda_lambda_id, b.name AS lambda_name, b.description AS lambda_description,
+               b.metadata AS lambda_metadata, b.dev_team_id AS lambda_dev_team_id,
+               b.code_upload_id AS lambda_code_upload_id, b.created_at AS lambda_created_at,
+               b.max_version AS lambda_max_version, b.max_sequence AS lambda_max_sequence
+        FROM lambda_assignments i
+        JOIN lambdas b ON b.lambda_id = i.lambda_id
+        WHERE i.deleted_at IS NULL AND i.lambda_assignment_id = #{lambdaAssignmentId}
+    </select>
+
+    <select id="selectLambdaAssignmentIdsByLambdaId" resultType="Integer" fetchSize="20">
+        SELECT lambda_assignment_id
+        FROM lambda_assignments
+        WHERE lambda_id = #{lambdaId} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectLambdaAssignmentIdsByLocationId" resultType="Integer" fetchSize="20">
+        SELECT lambda_assignment_id
+        FROM lambda_assignments
+        WHERE location_id = #{locationId} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectLambdaAssignments" resultMap="lambdaAssignmentResultMap" fetchSize="10">
+        SELECT <include refid="lambdaAssignmentCols"/>
+        FROM lambda_assignments i
+        JOIN lambda_active_versions v ON v.lambda_id = i.lambda_id
+            AND (NOT i.is_testing AND v.is_public OR i.is_testing AND v.latest_status = 1)
+        JOIN lambda_versions h ON h.lambda_version_id = v.lambda_version_id
+        JOIN lambdas b ON b.lambda_id = i.lambda_id
+        WHERE i.deleted_at IS NULL
+        <if test="lambdaId != null">AND i.lambda_id = #{lambdaId}</if>
+        <if test="locationId != null">AND i.location_id = #{locationId}</if>
+        <if test="testing">AND i.is_testing</if>
+    </select>
+
+    <insert id="insertLambdaAssignmentRun">
+        INSERT INTO lambda_latest_runs
+        SET lambda_assignment_id = #{lambdaAssignmentId},
+            invocation_lane = #{invocationLane},
+            lambda_version_id = #{lambdaVersionId},
+            function_name = #{functionName},
+            trigger_count = #{triggerCount},
+            pending_count = #{pendingCount},
+            next_input_number = #{nextInputNumber},
+            run_id = #{runId},
+            prev_run_id = #{prevRunId},
+            invocation_gen = #{invocationGen},
+            is_started = #{started},
+            aws_request_id = #{awsRequestId},
+            aws_log_stream = #{awsLogStream},
+            triggered_at = #{triggeredAt},
+            expiry_date = #{expiryDate},
+            aws_log_end_date = #{awsLogEndDate}
+    </insert>
+
+    <update id="updateLambdaAssignmentRunsReset">
+        UPDATE lambda_latest_runs
+        SET run_id = 0, triggered_at = NULL, expiry_date = NULL, invocation_gen = 0, is_started = false,
+            pending_count = 0, next_input_number = NULL, aws_request_id = NULL, aws_log_stream = NULL
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </update>
+</mapper>

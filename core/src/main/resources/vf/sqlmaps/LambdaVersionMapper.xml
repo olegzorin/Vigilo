@@ -1,0 +1,247 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaVersionMapper">
+
+    <resultMap id="lambdaMap" type="dev.olegz.vf.core.domain.lambdaversion.Lambda">
+        <id property="lambdaId" column="lambda_id"/>
+        <result property="lambdaName" column="name"/>
+        <result property="devTeamId" column="dev_team_id"/>
+        <result property="codeUploadId" column="code_upload_id"/>
+        <result property="maxVersion" column="max_version"/>
+        <result property="maxSequence" column="max_sequence"/>
+        <association property="codeUpload" javaType="dev.olegz.vf.core.domain.lambdabuild.LambdaCodeUpload">
+            <id property="uploadId" column="upload_id"/>
+            <result property="status" column="upload_status"/>
+            <result property="statusDate" column="status_date"/>
+        </association>
+    </resultMap>
+
+    <resultMap id="lambdaEntityMap" type="dev.olegz.vf.core.domain.lambdaversion.Lambda">
+        <id property="lambdaId" column="lambda_id"/>
+        <result property="lambdaName" column="name"/>
+        <result property="description" column="description"/>
+        <result property="metadata" column="metadata" typeHandler="dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler"/>
+        <result property="devTeamId" column="dev_team_id"/>
+        <result property="codeUploadId" column="code_upload_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="maxVersion" column="max_version"/>
+        <result property="maxSequence" column="max_sequence"/>
+    </resultMap>
+
+    <sql id="lambdaCols">
+        b.lambda_id, b.name, b.dev_team_id, b.code_upload_id, b.max_version, b.max_sequence
+    </sql>
+
+    <resultMap id="lambdaVersionMap" type="dev.olegz.vf.core.domain.lambdaversion.LambdaVersion">
+        <id property="lambdaVersionId" column="lambda_version_id"/>
+        <result property="lambdaId" column="lambda_version_lambda_id" />
+        <result property="published" column="is_public" />
+        <result property="latest" column="latest_status" />
+        <result property="status" column="status" />
+        <result property="statusDate" column="status_date" />
+        <result property="createdAt" column="created_at" />
+        <result property="createdBy" column="created_by" />
+        <result property="trigger" column="lambda_trigger"/>
+        <result property="schedule" column="schedule" typeHandler="dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler"/>
+        <result property="arch" column="arch" />
+        <result property="timeout" column="timeout" />
+        <result property="memory" column="memory" />
+        <result property="functionStartDate" column="function_start_date" />
+        <result property="codeUploadId" column="code_upload_id" />
+        <result property="functionName" column="function_name"/>
+        <result property="asyncFunctionName" column="async_function_name"/>
+        <result property="version" column="lambda_version" />
+        <result property="sequenceNumber" column="sequence_number" />
+        <result property="whatsnew" column="whatsnew"/>
+    </resultMap>
+
+    <insert id="insertLambda" useGeneratedKeys="true" keyProperty="lambdaId">
+        INSERT INTO lambdas (name, description, metadata, dev_team_id, created_at)
+        VALUES (#{lambdaName}, #{description},
+                #{metadata, typeHandler=dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler},
+                #{devTeamId}, #{createdAt})
+    </insert>
+
+    <update id="updateLambda">
+        UPDATE lambdas
+        SET description = #{description},
+            metadata = #{metadata, typeHandler=dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler}
+        WHERE lambda_id = #{lambdaId}
+    </update>
+
+    <update id="updateLambdaUploadId">
+        UPDATE lambdas
+        SET code_upload_id = #{uploadId}
+        WHERE lambda_id = #{lambdaId}
+    </update>
+
+    <update id="updateLambdaMaxVersion">
+        UPDATE lambdas
+        SET max_version = #{maxVersion}
+        WHERE lambda_id = #{lambdaId}
+    </update>
+
+    <update id="updateLambdaMaxSequence">
+        UPDATE lambdas
+        SET max_sequence = #{maxSequence}
+        WHERE lambda_id = #{lambdaId}
+    </update>
+
+    <select id="selectLambdaById" resultMap="lambdaEntityMap">
+        SELECT lambda_id, name, description, metadata, dev_team_id, code_upload_id,
+               created_at, max_version, max_sequence
+        FROM lambdas
+        WHERE lambda_id = #{lambdaId}
+    </select>
+
+    <select id="selectLambdaByIdAndUser" resultMap="lambdaEntityMap">
+        SELECT b.lambda_id, b.name, b.description, b.metadata, b.dev_team_id, b.code_upload_id,
+               b.created_at, b.max_version, b.max_sequence
+        FROM lambdas b
+        JOIN dev_team_members tm ON tm.dev_team_id = b.dev_team_id AND tm.user_id = #{userId}
+        WHERE lambda_id = #{lambdaId}
+    </select>
+
+    <select id="selectLambdasByDeveloper" resultMap="lambdaMap" fetchSize="8">
+        SELECT <include refid="lambdaCols"/>, t.name AS "developer_team_name"
+        FROM lambdas b
+        JOIN dev_teams t ON t.dev_team_id = b.dev_team_id
+        JOIN dev_team_members tm ON tm.dev_team_id = b.dev_team_id AND tm.user_id = #{userId}
+        <if test="teamId != null">AND t.dev_team_id = #{teamId}</if>
+    </select>
+
+    <select id="selectLambdaForUpdate" resultMap="lambdaMap">
+        SELECT <include refid="lambdaCols"/>
+        FROM lambdas b
+        WHERE b.lambda_id = #{lambdaId}
+        FOR UPDATE
+    </select>
+
+    <select id="selectLambdaForUpdateByIdAndUser" resultMap="lambdaMap">
+        SELECT <include refid="lambdaCols"/>
+        FROM lambdas b
+        JOIN dev_team_members tm ON tm.dev_team_id = b.dev_team_id AND tm.user_id = #{userId}
+        WHERE b.lambda_id = #{lambdaId}
+        FOR UPDATE OF b
+    </select>
+
+    <select id="selectLambdaVersions" resultMap="lambdaVersionMap" fetchSize="5">
+        SELECT h.lambda_id AS "lambda_version_lambda_id", h.lambda_version_id, h.lambda_version, h.sequence_number, h.created_by, h.created_at,
+        h.whatsnew, h.arch, h.code_upload_id, h.status, h.status_date,
+        h.lambda_trigger, h.schedule, v.latest_status, v.is_public,
+        v.timeout, v.memory, v.function_start_date, v.function_name, v.async_function_name
+        FROM lambda_versions h
+        LEFT OUTER JOIN lambda_active_versions v ON v.lambda_id = h.lambda_id AND v.lambda_version_id = h.lambda_version_id
+        WHERE h.lambda_id = #{lambdaId}
+        <if test="version != null">AND h.lambda_version = #{version}</if>
+        <if test="statuses != null">
+            AND h.status IN (<foreach collection="statuses" item="status" separator=",">#{status}</foreach> )
+        </if>
+    </select>
+
+    <insert id="insertLambdaVersion" useGeneratedKeys="true" keyProperty="lambdaVersionId">
+        INSERT INTO lambda_versions (lambda_id, created_at, created_by, lambda_trigger, lambda_version, sequence_number,
+            status, status_date, code_upload_id, arch, schedule, whatsnew)
+        VALUES (#{lambdaId}, #{createdAt}, #{createdBy}, #{trigger}, #{version}, #{sequenceNumber},
+            #{status}, #{statusDate}, #{codeUploadId}, #{arch},
+            #{schedule, typeHandler=dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler},
+            #{whatsnew})
+        ON CONFLICT (lambda_id, sequence_number) DO UPDATE SET
+            lambda_trigger = #{trigger}, lambda_version = #{version},
+            status = #{status}, status_date = #{statusDate}, code_upload_id = #{codeUploadId}, arch = #{arch},
+            schedule = #{schedule, typeHandler=dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler},
+            whatsnew = #{whatsnew}
+    </insert>
+
+    <update id="updateLambdaVersion" parameterType="dev.olegz.vf.core.domain.lambdaversion.LambdaVersion">
+        UPDATE lambda_versions
+        SET status = #{status}, status_date = #{statusDate}, code_upload_id = #{codeUploadId}, arch = #{arch},
+            schedule = #{schedule, typeHandler=dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler},
+            whatsnew = #{whatsnew}
+        WHERE lambda_version_id = #{lambdaVersionId}
+    </update>
+
+    <!-- For tests only -->
+    <delete id="deleteLambdaVersions">
+        DELETE FROM lambda_versions
+        WHERE lambda_id = #{lambdaId}
+    </delete>
+
+    <delete id="deleteLambdaActiveVersions">
+        DELETE FROM lambda_active_versions
+        WHERE lambda_id = #{lambdaId}
+    </delete>
+
+    <insert id="insertLambdaActiveVersion">
+        INSERT INTO lambda_active_versions (
+            lambda_id, is_public, latest_status, lambda_version_id, lambda_version, lambda_trigger,
+            timeout, memory, function_name, async_function_name, function_start_date, schedule_start_date, schedule)
+        VALUES (
+            #{lambdaId}, #{published}, #{latest}, #{lambdaVersionId}, #{version}, #{trigger},
+            #{timeout}, #{memory}, #{functionName}, #{asyncFunctionName}, #{functionStartDate}, #{scheduleStartDate},
+            #{schedule, typeHandler=dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler})
+        ON CONFLICT (lambda_id, is_public) DO UPDATE SET
+            latest_status = EXCLUDED.latest_status, lambda_version_id = EXCLUDED.lambda_version_id,
+            lambda_version = EXCLUDED.lambda_version, lambda_trigger = EXCLUDED.lambda_trigger,
+            timeout = EXCLUDED.timeout, memory = EXCLUDED.memory, function_name = EXCLUDED.function_name,
+            async_function_name = EXCLUDED.async_function_name,
+            function_start_date = EXCLUDED.function_start_date, schedule = EXCLUDED.schedule,
+            schedule_start_date = EXCLUDED.schedule_start_date
+    </insert>
+
+    <update id="clearNonPublicLambdaVersionActive">
+        UPDATE lambda_active_versions
+        SET latest_status = 2, lambda_version_id = NULL, lambda_version = NULL, lambda_trigger = 0, memory = 0, timeout = 0,
+            function_name = NULL, async_function_name = NULL, function_start_date = NULL,
+            schedule = NULL, schedule_start_date = NULL
+        WHERE lambda_id = #{lambdaId} AND NOT is_public
+    </update>
+
+    <!-- For tests only -->
+    <delete id="deleteLambdaCodeUploads">
+        DELETE FROM lambda_code_uploads
+        WHERE lambda_id = #{lambdaId}
+    </delete>
+
+    <select id="selectLambdaAssignmentIdsByLambdaId" resultType="Integer" fetchSize="20">
+        SELECT lambda_assignment_id
+        FROM lambda_assignments
+        WHERE lambda_id = #{lambdaId} AND deleted_at IS NULL
+    </select>
+
+    <!-- For tests only -->
+    <delete id="deleteLambdaAssignment">
+        DELETE FROM lambda_assignments
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </delete>
+
+    <delete id="deleteLambdaPendingInputs">
+        DELETE FROM lambda_pending_inputs_p
+        WHERE (tableoid, ctid) IN (
+            SELECT tableoid, ctid
+            FROM lambda_pending_inputs_p
+            WHERE lambda_assignment_id = #{lambdaAssignmentId}
+            LIMIT #{limit})
+    </delete>
+
+    <delete id="deleteLambdaAssignmentRun">
+        DELETE FROM lambda_latest_runs
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </delete>
+
+    <delete id="deleteLambdaAssignmentVariable">
+        DELETE FROM lambda_assignment_vars
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+        <if test="name != null">AND variable_name = #{name}</if>
+    </delete>
+
+    <!-- For tests only -->
+    <delete id="deleteLambda">
+        DELETE FROM lambdas
+        WHERE lambda_id = #{lambdaId}
+    </delete>
+
+</mapper>

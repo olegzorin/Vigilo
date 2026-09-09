@@ -1,0 +1,131 @@
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.olegz.vf</groupId>
+        <artifactId>parent</artifactId>
+        <version>1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>mcp</artifactId>
+    <packaging>jar</packaging>
+    <name>Vigilo Framework MCP</name>
+    <description>Model Context Protocol server providing read/write access to the local PostgreSQL database</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${jupiter-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${jupiter-version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- The only project-module dependency: PropertyStore, VigiloEnvironment, CollectionOps,
+             StringMapper, and Jackson 3 + logback transitively. -->
+        <dependency>
+            <groupId>dev.olegz.vf</groupId>
+            <artifactId>foundation</artifactId>
+            <version>1</version>
+        </dependency>
+
+        <!-- PostgreSQL driver + connection pool (third-party, declared directly; no core dependency) -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.13</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.tomcat</groupId>
+            <artifactId>tomcat-jdbc</artifactId>
+            <version>10.1.50</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>mcp</finalName>
+        <plugins>
+            <!-- Set home directory and version in JAR manifest + main class -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin-version}</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>dev.olegz.vf.mcp.Application</mainClass>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestSections>
+                            <manifestSection>
+                                <name>${manifest.home.entry}</name>
+                                <manifestEntries>
+                                    <version>${project.parent.version}</version>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <revision>${git.commit.id.abbrev}</revision>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <time>${git.commit.time}</time>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <repositoryPath>${git.branch}</repositoryPath>
+                                </manifestEntries>
+                            </manifestSection>
+                        </manifestSections>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- Build a single runnable uber-jar (target/mcp.jar) so an MCP client can launch
+                 the server with one command: java -jar mcp/target/mcp.jar -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-shade-plugin</artifactId>
+                <version>3.6.2</version>
+                <executions>
+                    <execution>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>shade</goal>
+                        </goals>
+                        <configuration>
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
+                            <filters>
+                                <filter>
+                                    <!-- Drop signature files from signed dependencies to avoid SecurityException -->
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>META-INF/*.SF</exclude>
+                                        <exclude>META-INF/*.DSA</exclude>
+                                        <exclude>META-INF/*.RSA</exclude>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <transformers>
+                                <!-- Merge META-INF/services (java.sql.Driver, Jackson modules, ...) -->
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                                    <mainClass>dev.olegz.vf.mcp.Application</mainClass>
+                                </transformer>
+                            </transformers>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Convenience for local runs: mvn -pl mcp exec:java -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.6.3</version>
+                <configuration>
+                    <mainClass>dev.olegz.vf.mcp.Application</mainClass>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

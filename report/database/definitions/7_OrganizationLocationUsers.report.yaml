@@ -1,0 +1,16 @@
+id: 7
+name: OrganizationLocationUsers
+type: summary
+displayName: Organization Location Users
+description: The report outputs the location name, address, and all users associated with that address and their phone numbers.
+query: queries/7_OrganizationLocationUsers.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization, placeholder: Select organization... }
+fields:
+  - { name: locationId, column: id, type: integer, displayName: Location ID }
+  - { name: locationName, column: s1, type: string, displayName: Location Name }
+  - { name: address, column: s2, type: string, displayName: Address }
+  - { name: userId, column: n1, type: integer, displayName: User ID }
+  - { name: fullName, column: s3, type: string, displayName: Full Name }
+  - { name: phone, column: s4, type: string, displayName: Phone Number }
+  - { name: email, column: s5, type: string, displayName: Email }

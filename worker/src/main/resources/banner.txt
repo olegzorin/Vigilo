@@ -1,0 +1,5 @@
+${application.title} ${application.version}
+Spring Boot ${spring-boot.version}
+Home dir: ${VF_HOME}
+HTTP port: ${server.port}
+Management port: ${management.server.port}

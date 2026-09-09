@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.registry.dao.mapper.LocationMapper">
+
+    <resultMap id="locationResultMap" type="dev.olegz.vf.registry.domain.account.Location">
+        <id property="locationId" column="location_id"/>
+        <result property="locationName" column="location_name"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <result property="organizationId" column="organization_id"/>
+        <association property="address" javaType="dev.olegz.vf.registry.domain.account.Address">
+            <result property="addrStreet1" column="addr_street1"/>
+            <result property="addrStreet2" column="addr_street2"/>
+            <result property="city" column="city"/>
+            <result property="state" column="state"/>
+            <result property="countryCode" column="country_code"/>
+            <result property="postalCode" column="postal_code"/>
+            <result property="timezone" column="timezone"/>
+        </association>
+    </resultMap>
+
+    <resultMap id="locationCurrentStateResultMap"
+               type="dev.olegz.vf.registry.domain.account.LocationCurrentState">
+        <id property="locationId" column="location_id"/>
+        <result property="state" column="current_state"/>
+        <result property="stateDate" column="state_date"/>
+    </resultMap>
+
+    <insert id="insertLocation" useGeneratedKeys="true" keyProperty="locationId">
+        INSERT INTO locations (location_name, created_at, deleted_at, organization_id,
+            addr_street1, addr_street2, city, state, country_code, postal_code, timezone)
+        VALUES (#{locationName}, #{createdAt}, #{deletedAt}, #{organizationId},
+            #{address.addrStreet1}, #{address.addrStreet2}, #{address.city}, #{address.state},
+            #{address.countryCode}, #{address.postalCode}, #{address.timezone})
+    </insert>
+
+    <select id="selectLocation" resultMap="locationResultMap">
+        SELECT location_id, location_name, created_at, deleted_at, organization_id,
+            addr_street1, addr_street2, city, state, country_code, postal_code, timezone
+        FROM locations
+        WHERE location_id = #{locationId}
+            AND organization_id = #{organizationId}
+            AND deleted_at IS NULL
+    </select>
+
+    <select id="selectLocationCurrentState" resultMap="locationCurrentStateResultMap">
+        SELECT lcs.location_id, lcs.current_state, lcs.state_date
+        FROM location_current_states lcs
+        JOIN locations l ON l.location_id = lcs.location_id
+        WHERE l.organization_id = #{organizationId}
+            AND lcs.location_id = #{locationId}
+            AND l.deleted_at IS NULL
+    </select>
+
+    <select id="selectLocationCurrentStateByLocationId" resultMap="locationCurrentStateResultMap">
+        SELECT location_id, current_state, state_date
+        FROM location_current_states
+        WHERE location_id = #{locationId}
+    </select>
+
+    <select id="lockLocation" resultType="Integer">
+        SELECT location_id
+        FROM locations
+        WHERE location_id = #{locationId}
+            AND deleted_at IS NULL
+        FOR UPDATE
+    </select>
+
+    <insert id="insertLocationCurrentState">
+        INSERT INTO location_current_states (location_id, current_state, state_date)
+        VALUES (#{locationId}, #{state}, #{stateDate})
+    </insert>
+
+    <update id="updateLocationCurrentState">
+        UPDATE location_current_states
+        SET current_state = #{state},
+            state_date = #{stateDate}
+        WHERE location_id = #{locationId}
+    </update>
+
+    <select id="selectLocationsByOrganization" resultMap="locationResultMap">
+        SELECT location_id, location_name, created_at, deleted_at, organization_id,
+            addr_street1, addr_street2, city, state, country_code, postal_code, timezone
+        FROM locations
+        WHERE organization_id = #{organizationId}
+            AND deleted_at IS NULL
+        ORDER BY location_name, location_id
+    </select>
+
+    <select id="selectLocationByUser" resultMap="locationResultMap">
+        SELECT l.location_id, l.location_name, l.created_at, l.deleted_at, l.organization_id,
+            l.addr_street1, l.addr_street2, l.city, l.state, l.country_code, l.postal_code, l.timezone
+        FROM locations l
+        JOIN user_locations ul ON ul.location_id = l.location_id
+        WHERE ul.user_id = #{userId}
+            AND l.organization_id = #{organizationId}
+            AND l.deleted_at IS NULL
+            AND (ul.end_date IS NULL OR ul.end_date &gt; NOW())
+        ORDER BY ul.start_date DESC
+        LIMIT 1
+    </select>
+
+    <update id="updateLocation">
+        UPDATE locations SET
+            location_name = #{locationName},
+            deleted_at = #{deletedAt},
+            organization_id = #{organizationId},
+            addr_street1 = #{address.addrStreet1},
+            addr_street2 = #{address.addrStreet2},
+            city = #{address.city},
+            state = #{address.state},
+            country_code = #{address.countryCode},
+            postal_code = #{address.postalCode},
+            timezone = #{address.timezone}
+        WHERE location_id = #{locationId}
+            AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteLocation">
+        UPDATE locations SET deleted_at = NOW()
+        WHERE location_id = #{locationId}
+            AND deleted_at IS NULL
+    </update>
+
+</mapper>

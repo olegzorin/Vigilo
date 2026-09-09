@@ -1,0 +1,13 @@
+id: 3
+name: DeviceSummary
+type: summary
+displayName: Device Summary
+description: How many connected and disconnected devices of each type are in an organization at current moment
+query: queries/3_DeviceSummary.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization, placeholder: Select organization... }
+  - { name: byModel, type: boolean, required: false, displayName: By Model }
+fields:
+  - { name: name, column: s1, type: string, displayName: Device Type }
+  - { name: model, column: s2, type: string, displayName: Model }
+  - { name: count, column: n1, type: integer, displayName: Count }

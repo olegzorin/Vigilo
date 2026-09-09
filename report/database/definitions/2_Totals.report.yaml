@@ -1,0 +1,12 @@
+id: 2
+name: Totals
+type: summary
+displayName: Organization Totals
+description: The total of active users, lambda assignments, location devices
+query: queries/2_Totals.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization, placeholder: Select organization... }
+fields:
+  - { name: userCount, column: n1, type: integer, displayName: User count }
+  - { name: lambdaAssignmentCount, column: n2, type: integer, displayName: Lambda assignment count }
+  - { name: deviceCount, column: n3, type: integer, displayName: Location device count }

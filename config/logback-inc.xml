@@ -1,0 +1,94 @@
+<included>
+<!-- logging configuration -->
+
+  <property name="LOG_DIR" scope="context" value="${LOG_HOME:-${user.home}/.myprojects/botlab/logs}" />
+  <property name="MODULE_LOG_DIR" value="${LOG_DIR}/${MODULE:-default}" />
+
+  <!-- A date based rolling appender -->
+  <property name="ROLLING_FILE_PATTERN" scope="context" value="%d.log.zip" />
+  <!-- keep 3 days' worth of history -->
+  <property name="MAX_HISTORY" value="3" />
+  <!-- Standard message encoder pattern -->
+  <property name="STD_ENCODER_PATTERN" value="%date %-5level %-60.60logger{60} %message%n" />
+
+  <!-- APPENDERS -->
+
+  <appender name="APPLICATION"
+    class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${MODULE_LOG_DIR}/app.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <FileNamePattern>${MODULE_LOG_DIR}/zcloud.${ROLLING_FILE_PATTERN}</FileNamePattern>
+      <MaxHistory>${MAX_HISTORY}</MaxHistory>
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>${STD_ENCODER_PATTERN}</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="ERROR"
+    class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${MODULE_LOG_DIR}/error.log</file>
+
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>WARN</level>
+    </filter>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <FileNamePattern>${MODULE_LOG_DIR}/zerror.${ROLLING_FILE_PATTERN}</FileNamePattern>
+      <MaxHistory>${MAX_HISTORY}</MaxHistory>
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>${STD_ENCODER_PATTERN}</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="MyBATIS"
+    class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${MODULE_LOG_DIR}/mybatis.log</file>
+
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <FileNamePattern>${MODULE_LOG_DIR}/zmybatis.${ROLLING_FILE_PATTERN}</FileNamePattern>
+      <MaxHistory>${MAX_HISTORY}</MaxHistory>
+    </rollingPolicy>
+
+    <encoder>
+      <pattern>${STD_ENCODER_PATTERN}</pattern>
+    </encoder>
+  </appender>
+
+  <appender name="LAMBDA" class="ch.qos.logback.classic.sift.SiftingAppender">
+    <discriminator>
+      <key>lambdaId</key>
+      <defaultValue>unknown</defaultValue>
+    </discriminator>
+    <sift>
+      <appender name="LAMBDA-${lambdaId}" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${MODULE_LOG_DIR}/lambda/${lambdaId}.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+          <FileNamePattern>${MODULE_LOG_DIR}/lambda/z-${lambdaId}.${ROLLING_FILE_PATTERN}</FileNamePattern>
+          <MaxHistory>1</MaxHistory>
+        </rollingPolicy>
+
+        <encoder>
+          <pattern>%date %-5level %message%n</pattern>
+        </encoder>
+      </appender>
+    </sift>
+  </appender>
+
+  <!-- LOGGERS -->
+
+  <logger name="dev.olegz.vf" level="debug">
+    <appender-ref ref="APPLICATION" />
+  </logger>
+
+  <root level="warn">
+    <appender-ref ref="ERROR" />
+    <!-- <appender-ref ref="EMAIL" /> -->
+  </root>
+
+</included>

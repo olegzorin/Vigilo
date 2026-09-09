@@ -1,0 +1,11 @@
+id: 5
+name: UserCreation
+type: summary
+displayName: User Creation Date
+description: Displays users and their created date in the current organization.
+query: queries/5_UserCreation.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization, placeholder: Select organization... }
+fields:
+  - { name: userId, column: id, type: integer, displayName: User ID }
+  - { name: creationDate, column: t1, type: datetime, displayName: Date Created }

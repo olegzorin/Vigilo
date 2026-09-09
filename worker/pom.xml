@@ -1,0 +1,226 @@
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd" xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>dev.olegz.vf</groupId>
+        <artifactId>parent</artifactId>
+        <version>1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>worker</artifactId>
+    <packaging>jar</packaging>
+    <name>Vigilo Framework Worker</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <version>${jupiter-version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>${jupiter-version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>dev.olegz.vf</groupId>
+            <artifactId>foundation</artifactId>
+            <version>1</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.olegz.vf</groupId>
+            <artifactId>messaging</artifactId>
+            <version>1</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.olegz.vf</groupId>
+            <artifactId>registry</artifactId>
+            <version>1</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.olegz.vf</groupId>
+            <artifactId>core</artifactId>
+            <version>1</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.olegz.vf</groupId>
+            <artifactId>report</artifactId>
+            <version>1</version>
+        </dependency>
+        <dependency>
+            <groupId>dev.olegz.vf</groupId>
+            <artifactId>core</artifactId>
+            <version>1</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- IAM, ECR and EC2 reach worker transitively via the dev.olegz.vf.aws
+             module; only Lambda (lambda function deployment) is declared directly here. -->
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>lambda</artifactId>
+            <version>${aws-java-sdk-2-version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>software.amazon.awssdk.iotdevicesdk</groupId>
+            <artifactId>aws-iot-device-sdk</artifactId>
+            <version>1.33.0</version>
+        </dependency>
+
+        <!-- Spring boot -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-web</artifactId>
+            <version>${spring-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-webmvc</artifactId>
+            <version>${spring-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring-boot-version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-to-slf4j</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-api</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.yaml</groupId>
+                    <artifactId>snakeyaml</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Production ready features including shutdown
+        https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/#production-ready -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+            <version>${spring-boot-version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-test</artifactId>
+            <version>${spring-version}</version>
+            <scope>test</scope>
+        </dependency>
+
+    </dependencies>
+
+    <build>
+        <finalName>worker</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>${maven-resources-plugin-version}</version>
+                <configuration>
+                    <propertiesEncoding>UTF-8</propertiesEncoding>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>copy-foundation-resources</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/classes/static</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../foundation/src/main/webapp</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-registry-properties</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/classes/vf/properties</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../registry/src/main/resources/vf/properties</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-patches</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/classes/vf/database/patches/${project.parent.version}</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>../core/database/src/patches/${project.parent.version}</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>${maven-jar-plugin-version}</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+                        </manifest>
+                        <manifestSections>
+                            <manifestSection>
+                                <name>${manifest.home.entry}</name>
+                                <manifestEntries>
+                                    <version>${project.parent.version}</version>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <revision>${git.commit.id.abbrev}</revision>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <time>${git.commit.time}</time>
+                                    <!--suppress UnresolvedMavenProperty -->
+                                    <repositoryPath>${git.branch}</repositoryPath>
+                                </manifestEntries>
+                            </manifestSection>
+                        </manifestSections>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot-version}</version>
+                <configuration>
+                    <mainClass>dev.olegz.vf.worker.Application</mainClass>
+                    <layout>JAR</layout>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

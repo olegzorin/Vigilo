@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!-- https://spotbugs.readthedocs.io/en/latest/bugDescriptions.html -->
+    <!-- https://find-sec-bugs.github.io/bugs.htm -->
+    <Match>
+      <Bug pattern="
+        EI_EXPOSE_REP,
+        EI_EXPOSE_REP2,
+        MS_EXPOSE_REP,
+        MS_MUTABLE_ARRAY,
+        MS_MUTABLE_COLLECTION,
+        MS_PKGPROTECT,
+
+        AT_NONATOMIC_64BIT_PRIMITIVE,
+        PA_PUBLIC_PRIMITIVE_ATTRIBUTE,
+        PA_PUBLIC_ARRAY_ATTRIBUTE,
+        PA_PUBLIC_MUTABLE_OBJECT_ATTRIBUTE,
+        URF_UNREAD_FIELD,
+        URF_UNREAD_PUBLIC_OR_PROTECTED_FIELD,
+        UUF_UNUSED_PUBLIC_OR_PROTECTED_FIELD,
+        NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,
+        UWF_UNWRITTEN_FIELD,
+        UWF_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD,
+        UWF_NULL_FIELD,
+
+        CRLF_INJECTION_LOGS,
+        HARD_CODE_KEY,
+        DCN_NULLPOINTER_EXCEPTION,
+        PREDICTABLE_RANDOM,
+        PATH_TRAVERSAL_IN,
+        REC_CATCH_EXCEPTION,
+        SF_SWITCH_NO_DEFAULT,
+        ST_WRITE_TO_STATIC_FROM_INSTANCE_METHOD,
+        URLCONNECTION_SSRF_FD,
+      "/>
+    </Match>
+
+</FindBugsFilter>

@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaInvokeRetryOutboxMapper">
+    <select id="exists" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM lambda_invoke_retry_outbox
+            WHERE lambda_assignment_id = #{lambdaAssignmentId}
+              AND lane = #{lane}
+              AND run_id = #{runId}
+              AND invocation_gen = #{invocationGen}
+        )
+    </select>
+
+    <insert id="insert">
+        INSERT INTO lambda_invoke_retry_outbox (
+            lambda_assignment_id, lane, run_id, invocation_gen, payload, retry_at
+        ) VALUES (
+            #{lambdaAssignmentId}, #{lane}, #{runId}, #{invocationGen}, #{payload}, #{retryAt}
+        )
+    </insert>
+
+    <select id="claimNextDue" affectData="true" flushCache="true"
+            resultType="dev.olegz.vf.core.domain.lambdarun.LambdaInvokeRetryOutboxEntry">
+        WITH candidate AS (
+            SELECT lambda_assignment_id, lane, run_id, invocation_gen
+            FROM lambda_invoke_retry_outbox
+            WHERE retry_at &lt;= #{now}
+              AND (claim_until IS NULL OR claim_until &lt;= #{now})
+            ORDER BY retry_at, lambda_assignment_id, lane, run_id, invocation_gen
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        )
+        UPDATE lambda_invoke_retry_outbox o
+        SET claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler},
+            claim_until = #{claimUntil}
+        FROM candidate c
+        WHERE o.lambda_assignment_id = c.lambda_assignment_id
+          AND o.lane = c.lane
+          AND o.run_id = c.run_id
+          AND o.invocation_gen = c.invocation_gen
+        RETURNING o.lambda_assignment_id, o.lane, o.run_id, o.invocation_gen, o.payload, o.retry_at,
+                  CAST(o.claim_id AS VARCHAR) AS claim_id, o.claim_until
+    </select>
+
+    <update id="renewClaim">
+        UPDATE lambda_invoke_retry_outbox
+        SET claim_until = #{claimUntil}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND lane = #{lane}
+          AND run_id = #{runId}
+          AND invocation_gen = #{invocationGen}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </update>
+
+    <delete id="deleteClaimed">
+        DELETE FROM lambda_invoke_retry_outbox
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND lane = #{lane}
+          AND run_id = #{runId}
+          AND invocation_gen = #{invocationGen}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </delete>
+
+    <update id="releaseClaim">
+        UPDATE lambda_invoke_retry_outbox
+        SET claim_id = NULL, claim_until = NULL
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND lane = #{lane}
+          AND run_id = #{runId}
+          AND invocation_gen = #{invocationGen}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </update>
+
+    <delete id="deleteForLambdaAssignment">
+        DELETE FROM lambda_invoke_retry_outbox
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </delete>
+</mapper>

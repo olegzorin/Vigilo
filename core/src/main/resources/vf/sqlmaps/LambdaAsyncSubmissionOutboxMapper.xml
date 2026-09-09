@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaAsyncSubmissionOutboxMapper">
+    <select id="exists" resultType="boolean">
+        SELECT EXISTS(
+            SELECT 1
+            FROM lambda_async_submission_outbox
+            WHERE lambda_assignment_id = #{lambdaAssignmentId}
+              AND run_id = #{runId}
+        )
+    </select>
+
+    <insert id="insert">
+        INSERT INTO lambda_async_submission_outbox (
+            lambda_assignment_id, run_id, payload, retry_at, last_error
+        ) VALUES (
+            #{lambdaAssignmentId}, #{runId}, #{payload}, #{retryAt}, #{lastError}
+        )
+    </insert>
+
+    <select id="claimNextDue" affectData="true" flushCache="true"
+            resultType="dev.olegz.vf.core.domain.lambdarun.LambdaAsyncSubmissionOutboxEntry">
+        WITH candidate AS (
+            SELECT lambda_assignment_id, run_id
+            FROM lambda_async_submission_outbox
+            WHERE retry_at &lt;= #{now}
+              AND (claim_until IS NULL OR claim_until &lt;= #{now})
+            ORDER BY retry_at, lambda_assignment_id, run_id
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        )
+        UPDATE lambda_async_submission_outbox o
+        SET claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler},
+            claim_until = #{claimUntil}
+        FROM candidate c
+        WHERE o.lambda_assignment_id = c.lambda_assignment_id
+          AND o.run_id = c.run_id
+        RETURNING o.lambda_assignment_id, o.run_id, o.payload, o.retry_at, o.attempt_count, o.last_error,
+                  CAST(o.claim_id AS VARCHAR) AS claim_id, o.claim_until
+    </select>
+
+    <delete id="deleteClaimed">
+        DELETE FROM lambda_async_submission_outbox
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND run_id = #{runId}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </delete>
+
+    <update id="rescheduleClaimed">
+        UPDATE lambda_async_submission_outbox
+        SET retry_at = #{retryAt}, attempt_count = attempt_count + 1, last_error = #{lastError},
+            claim_id = NULL, claim_until = NULL
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND run_id = #{runId}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </update>
+
+    <delete id="deleteForLambdaAssignment">
+        DELETE FROM lambda_async_submission_outbox
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </delete>
+</mapper>

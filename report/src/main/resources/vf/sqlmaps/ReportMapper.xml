@@ -1,0 +1,398 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.report.dao.mapper.ReportsMapper">
+
+    <update id="updateReportDefinition">
+        UPDATE reports
+        SET report_name = #{report.reportName}, report_type = #{report.reportType},
+            display_name = #{report.displayName}, description = #{report.description}, sql_query = #{sql}
+        WHERE report_id = #{report.reportId}
+    </update>
+
+    <insert id="insertReportDefinition">
+        INSERT INTO reports (report_id, report_name, report_type, display_name, description, sql_query)
+        VALUES (#{report.reportId}, #{report.reportName}, #{report.reportType}, #{report.displayName},
+            #{report.description}, #{sql})
+    </insert>
+
+    <delete id="deleteReportParams">
+        DELETE FROM report_params WHERE report_id = #{reportId}
+    </delete>
+
+    <insert id="insertReportParam">
+        INSERT INTO report_params (report_id, param_index, data_type, is_required, param_name,
+            display_name, description, placeholder)
+        VALUES (#{reportId}, #{index}, #{dataType}, #{required}, #{name}, #{displayName},
+            #{description}, #{placeholder})
+    </insert>
+
+    <delete id="deleteReportFields">
+        DELETE FROM report_fields WHERE report_id = #{reportId}
+    </delete>
+
+    <insert id="insertReportField">
+        INSERT INTO report_fields (report_id, field_index, data_type, column_name, field_name,
+            display_name, description)
+        VALUES (#{reportId}, #{index}, #{dataType}, #{columnName}, #{name}, #{displayName}, #{description})
+    </insert>
+
+    <delete id="deleteReportMetadata">
+        DELETE FROM report_metadata WHERE report_id = #{reportId}
+    </delete>
+
+    <insert id="insertReportMetadata">
+        INSERT INTO report_metadata (report_id, name, func_index, field_index, description)
+        VALUES (#{reportId}, #{name}, #{func_index}, #{field_index}, #{description})
+    </insert>
+
+    <insert id="insertReportGroupReport">
+        INSERT INTO report_group_reports (report_id, report_group_id, start_date)
+        VALUES (#{reportId}, #{reportGroupId}, #{startDate})
+        ON CONFLICT (report_id, report_group_id) DO NOTHING
+    </insert>
+
+    <insert id="insertReportSchedule">
+        INSERT INTO report_group_schedules (report_id, report_group_id, parameters, timezone, execution_schedule, send_to)
+        VALUES (#{reportId}, #{reportGroupId},
+            #{parameters,typeHandler=dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler},
+            #{timezone}, #{schedule}, #{sendTo})
+        ON CONFLICT (report_id, report_group_id) DO UPDATE SET
+            parameters = EXCLUDED.parameters,
+            timezone = EXCLUDED.timezone,
+            execution_schedule = EXCLUDED.execution_schedule,
+            send_to = EXCLUDED.send_to
+    </insert>
+
+    <delete id="deleteReportSchedule">
+        DELETE FROM report_group_schedules
+        WHERE report_id = #{reportId} AND report_group_id = #{reportGroupId}
+    </delete>
+
+    <delete id="deleteReportExecutions">
+        DELETE FROM report_execution_history WHERE report_id = #{reportId}
+    </delete>
+
+    <select id="selectReportGroupId" resultType="Integer">
+        SELECT rgr.report_group_id
+        FROM report_group_reports rgr
+        WHERE rgr.report_id = #{reportId}
+        <if test="reportGroupId != null">AND rgr.report_group_id = #{reportGroupId}</if>
+            AND (
+                EXISTS (SELECT 1 FROM report_groups rg
+                    WHERE rg.report_group_id = rgr.report_group_id AND rg.organizational_type = 0)
+        <if test="organizationId != null">
+                OR EXISTS (SELECT 1
+                    FROM organizations_hierarchy oh, report_group_organizations rgo
+                    WHERE oh.child_organization_id = #{organizationId}
+                        AND rgo.organization_id = oh.parent_organization_id
+                        AND rgo.report_group_id = rgr.report_group_id)
+        </if>
+            )
+        LIMIT 1
+    </select>
+
+    <update id="updateReportGroupScheduleExecutionDates">
+        UPDATE report_group_schedules
+        SET last_execution_date = #{lastExecutionDate},
+            next_execution_date = #{nextExecutionDate}
+        WHERE schedule_id = #{scheduleId}
+    </update>
+
+    <resultMap id="reportMap" type="dev.olegz.vf.report.domain.Report">
+        <id column="report_id" property="reportId" />
+        <result column="report_name" property="reportName"/>
+        <result column="display_name" property="displayName"/>
+        <result column="description" property="description"/>
+        <result column="report_type" property="reportType"/>
+        <result column="sql_query" property="sqlQuery"/>
+        <result column="dictionary_sql" property="dictionarySql"/>
+        <result column="display_info" property="displayInfo"/>
+        <collection property="params" ofType="dev.olegz.vf.report.domain.ReportParam">
+            <id column="param_name" property="name"/>
+            <result column="param_index" property="index"/>
+            <result column="param_type" property="dataType"/>
+            <result column="param_required" property="required"/>
+            <result column="param_disp" property="displayName"/>
+            <result column="param_desc" property="description"/>
+            <result column="placeholder" property="placeholder"/>
+        </collection>
+        <collection property="fields" ofType="dev.olegz.vf.report.domain.ReportField">
+            <id column="field_name" property="name"/>
+            <result column="field_index" property="index"/>
+            <result column="field_type" property="dataType"/>
+            <result column="field_column" property="columnName"/>
+            <result column="field_disp" property="displayName"/>
+            <result column="field_desc" property="description"/>
+        </collection>
+        <collection property="metadata" ofType="dev.olegz.vf.report.domain.ReportMetadata">
+            <id column="meta_name" property="name"/>
+            <result column="meta_func_index" property="func_index"/>
+            <result column="meta_field_index" property="field_index"/>
+            <result column="meta_desc" property="description"/>
+        </collection>
+
+    </resultMap>
+
+    <select id="selectReportForExecution" resultMap="reportMap" fetchSize="20">
+        SELECT r.report_id, r.report_name, r.display_name, r.description, r.report_type, r.sql_query, r.dictionary_sql,
+            rp.param_name, rp.param_index, rp.data_type AS "param_type", rp.is_required AS "param_required", rp.display_name AS "param_disp", rp.description AS "param_desc", rp.placeholder,
+            rf.field_name, rf.data_type AS "field_type", rf.field_index, rf.column_name AS "field_column", rf.display_name AS "field_disp", rf.description AS "field_desc",
+            rm.name AS "meta_name", rm.func_index AS "meta_func_index", rm.field_index AS "meta_field_index", rm.description AS "meta_desc"
+        FROM reports r
+            JOIN report_fields rf ON rf.report_id = r.report_id
+            LEFT OUTER JOIN report_params rp ON rp.report_id = r.report_id
+            LEFT OUTER JOIN report_metadata rm ON rm.report_id = r.report_id
+        WHERE r.report_id = #{reportId}
+    </select>
+
+    <select id="selectReportWithFields" resultMap="reportMap" fetchSize="10">
+        SELECT r.report_id, r.report_type, r.report_name, r.display_name, r.description, r.dictionary_sql,
+               rf.field_name, rf.field_index, rf.data_type AS "field_type", rf.column_name AS "field_column",
+               rf.display_name AS "field_disp", rf.description AS "field_desc"
+        FROM reports r
+            JOIN report_fields rf ON r.report_id = rf.report_id
+        WHERE rf.report_id = #{reportId}
+            AND EXISTS (SELECT 1 FROM report_group_schedules rgs
+                WHERE rgs.report_id = r.report_id AND rgs.report_group_id = #{reportGroupId})
+    </select>
+
+    <resultMap id="reportMapExt" extends="reportMap" type="dev.olegz.vf.report.domain.Report">
+        <collection property="reportGroupSchedules" ofType="dev.olegz.vf.report.domain.ReportGroupSchedule">
+            <id column="report_group_id" property="reportGroupId"/>
+            <result column="report_group_report_id" property="reportId"/>
+            <result column="start_date" property="startDate"/>
+            <result column="parameters" property="parameters" typeHandler="dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler"/>
+            <result column="send_to" property="sendTo"/>
+            <result column="execution_schedule" property="schedule"/>
+            <result column="last_execution_date" property="lastExecutionDate"/>
+            <result column="next_execution_date" property="nextExecutionDate"/>
+            <association property="group" javaType="dev.olegz.vf.report.domain.ReportGroup">
+                <id column="report_group_id" property="reportGroupId"/>
+                <result column="groupName" property="name" />
+                <result column="groupDescription" property="description" />
+                <association property="organization" javaType="dev.olegz.vf.report.domain.ReportGroupOrganization">
+                    <id column="organization_id" property="organizationId"/>
+                    <result column="organization_assigned_at" property="assignedAt"/>
+                </association>
+            </association>
+        </collection>
+    </resultMap>
+
+    <sql id="reportCols">
+        r.report_id, r.report_name, r.display_name, r.description, r.report_type, r.display_info,
+        rgr.report_group_id, rgr.report_id AS "report_group_report_id", rgr.start_date, rgs.parameters, rgs.send_to, rgs.execution_schedule, rgs.last_execution_date, rgs.next_execution_date,
+        rp.param_name, rp.param_index, rp.data_type AS "param_type", rp.is_required AS "param_required", rp.display_name AS "param_disp", rp.description AS "param_desc", rp.placeholder,
+        rf.field_name, rf.field_index, rf.data_type AS "field_type", rf.column_name AS "field_column", rf.display_name AS "field_disp", rf.description AS "field_desc",
+        rg.name AS "groupName", rg.description AS "groupDescription",
+        rm.name AS "meta_name", rm.func_index AS "meta_func_index", rm.field_index AS "meta_field_index", rm.description AS "meta_desc"
+    </sql>
+
+    <select id="selectSystemReports" resultMap="reportMapExt" fetchSize="50">
+        SELECT <include refid="reportCols"/>
+        FROM report_groups rg
+            JOIN report_group_reports rgr ON rgr.report_group_id = rg.report_group_id
+            LEFT OUTER JOIN report_group_schedules rgs ON rgs.report_id = rgr.report_id AND rgs.report_group_id = rgr.report_group_id
+            JOIN reports r ON r.report_id = rgr.report_id AND r.report_type IN (0, 1)
+            JOIN report_fields rf ON rf.report_id = r.report_id
+            LEFT OUTER JOIN report_params rp ON rp.report_id = r.report_id
+            LEFT OUTER JOIN report_metadata rm ON rm.report_id = r.report_id
+        WHERE rg.organizational_type = 0
+        <if test="reportGroupId != null">AND rg.report_group_id = #{reportGroupId}</if>
+        <if test="reportId != null">AND r.report_id = #{reportId}</if>
+        <if test="reportType != null">AND r.report_type = #{reportType}</if>
+    </select>
+
+    <select id="selectOrganizationReports" resultMap="reportMapExt" fetchSize="50">
+        SELECT <include refid="reportCols"/>,
+            rgo.assigned_at AS "organization_assigned_at", rgo.organization_id
+        FROM organizations_hierarchy oh
+            JOIN report_group_organizations rgo ON rgo.organization_id = oh.parent_organization_id
+            JOIN report_groups rg ON rg.report_group_id = rgo.report_group_id
+            JOIN report_group_reports rgr ON rgr.report_group_id = rgo.report_group_id
+            LEFT OUTER JOIN report_group_schedules rgs ON rgs.report_id = rgr.report_id AND rgs.report_group_id = rgr.report_group_id
+            JOIN reports r ON r.report_id = rgr.report_id AND r.report_type IN (0, 1)
+            JOIN report_fields rf ON rf.report_id = r.report_id
+            LEFT OUTER JOIN report_params rp ON rp.report_id = r.report_id
+            LEFT OUTER JOIN report_metadata rm ON rm.report_id = r.report_id
+        WHERE oh.child_organization_id = #{organizationId}
+        <if test="reportGroupId != null">AND rgo.report_group_id = #{reportGroupId}</if>
+        <if test="reportId != null">AND r.report_id = #{reportId}</if>
+        <if test="reportType != null">AND r.report_type = #{reportType}</if>
+    </select>
+
+    <insert id="insertReportGroupOrganization">
+        INSERT INTO report_group_organizations (organization_id, report_group_id, assigned_at)
+        SELECT #{organizationId}, #{reportGroupId}, #{assignedAt}
+        FROM report_groups
+        WHERE report_group_id = #{reportGroupId} AND organizational_type = 1
+    </insert>
+
+    <delete id="deleteReportGroupOrganizations">
+        DELETE FROM report_group_organizations
+        WHERE report_group_id = #{reportGroupId}
+            AND organization_id IN (SELECT o.child_organization_id
+                FROM organizations_hierarchy o
+                WHERE o.parent_organization_id = #{organizationId}
+                <if test="excluded">AND o.level &gt; 0</if>)
+    </delete>
+
+    <delete id="deleteReportGroupOrganizationsByOrganization">
+        DELETE FROM report_group_organizations
+        WHERE organization_id = #{organizationId}
+    </delete>
+
+    <resultMap id="reportGroupOrganization" type="dev.olegz.vf.report.domain.ReportGroupOrganization">
+        <id column="report_group_id" property="reportGroupId"/>
+        <id column="organization_id" property="organizationId"/>
+        <result column="assigned_at" property="assignedAt"/>
+        <result column="timezone" property="timezone"/>
+    </resultMap>
+
+    <select id="selectReportGroupOrganization" resultMap="reportGroupOrganization">
+        SELECT rgo.report_group_id, rgo.organization_id, rgo.assigned_at
+        FROM report_group_organizations rgo
+            JOIN organizations_hierarchy oh ON oh.parent_organization_id = rgo.organization_id
+        WHERE oh.child_organization_id = #{organizationId} AND rgo.report_group_id = #{reportGroupId}
+        LIMIT 1
+    </select>
+
+    <select id="selectReportGroupOrganizations" resultMap="reportGroupOrganization" fetchSize="50">
+        SELECT rgo.report_group_id, oh.child_organization_id AS organization_id, rgo.assigned_at, o.timezone
+        FROM report_group_organizations rgo
+            JOIN organizations_hierarchy oh ON oh.parent_organization_id = rgo.organization_id
+            JOIN organizations o ON o.organization_id = oh.child_organization_id
+        WHERE o.is_deleted = 0
+    </select>
+
+    <resultMap id="organizationReportGroup" type="dev.olegz.vf.report.domain.ReportGroup">
+        <id column="report_group_id" property="reportGroupId"/>
+        <result column="description" property="description" />
+        <result column="name" property="name" />
+        <result column="analytic" property="analytic" />
+        <association property="organization" notNullColumn="organization_id" resultMap="reportGroupOrganization"/>
+    </resultMap>
+
+    <select id="selectOrganizationReportGroups" resultMap="organizationReportGroup" fetchSize="5">
+        SELECT rg.report_group_id, rg.description, rg.name, org.parent_organization_id AS "organization_id"
+        <if test="!analytic">
+            , EXISTS (SELECT 1 FROM report_group_reports rgr, reports r
+            WHERE rgr.report_group_id = rg.report_group_id AND r.report_id = rgr.report_id
+            AND r.report_type = 1) AS "analytic"
+        </if>
+        FROM report_groups rg
+            <if test="all">LEFT OUTER </if>JOIN (
+                SELECT rgo.report_group_id, oh.parent_organization_id
+                FROM organizations_hierarchy oh, report_group_organizations rgo
+                WHERE oh.child_organization_id = #{organizationId}
+                    AND rgo.organization_id = oh.parent_organization_id
+            ) org ON org.report_group_id = rg.report_group_id
+        WHERE rg.organizational_type = 1
+        <if test="analytic">
+            AND EXISTS (SELECT 1 FROM report_group_reports rgr, reports r
+                WHERE rgr.report_group_id = rg.report_group_id AND r.report_id = rgr.report_id
+                AND r.report_type = 1)
+        </if>
+    </select>
+
+    <resultMap id="reportGroupScheduleResultMap" type="dev.olegz.vf.report.domain.ReportGroupSchedule">
+        <id column="schedule_id" property="scheduleId"/>
+        <result column="report_id" property="reportId"/>
+        <result column="report_group_id" property="reportGroupId"/>
+        <result column="timezone" property="timezone"/>
+        <result column="parameters" property="parameters" typeHandler="dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler"/>
+        <result column="execution_schedule" property="schedule"/>
+        <result column="next_execution_date" property="nextExecutionDate"/>
+        <result column="last_execution_date" property="lastExecutionDate"/>
+        <result column="send_to" property="sendTo"/>
+        <result column="organizational_type" property="organizationalType"/>
+    </resultMap>
+
+    <select id="selectPastReportSchedules" resultMap="reportGroupScheduleResultMap" fetchSize="20">
+        SELECT rgs.schedule_id, rgs.report_id, rgs.report_group_id, rgs.parameters, rgs.timezone, rgs.execution_schedule,
+               rgs.last_execution_date, rgs.next_execution_date, rgs.send_to, rg.organizational_type
+        FROM report_group_schedules rgs
+            JOIN report_groups rg ON rg.report_group_id = rgs.report_group_id
+            JOIN reports r ON r.report_id = rgs.report_id AND r.report_type IN (0, 1)
+        WHERE (rgs.next_execution_date IS NULL OR rgs.next_execution_date &lt;= #{date})
+    </select>
+
+    <select id="selectReportSchedules" resultMap="reportGroupScheduleResultMap" fetchSize="1">
+        SELECT rgs.schedule_id, rgs.report_id, rgs.report_group_id, rgs.parameters, rgs.timezone, rgs.execution_schedule,
+               rgs.last_execution_date, rgs.next_execution_date, rgs.send_to, rg.organizational_type
+        FROM report_group_schedules rgs
+            JOIN report_groups rg ON rg.report_group_id = rgs.report_group_id
+        WHERE rgs.report_id = #{reportId}
+    </select>
+
+    <select id="selectReportScheduleForUpdate" resultMap="reportGroupScheduleResultMap" fetchSize="1">
+        SELECT rgs.schedule_id, rgs.report_id, rgs.report_group_id, rgs.parameters, rgs.timezone, rgs.execution_schedule,
+               rgs.last_execution_date, rgs.next_execution_date, rgs.send_to, rg.organizational_type
+        FROM report_group_schedules rgs
+            JOIN report_groups rg ON rg.report_group_id = rgs.report_group_id
+        WHERE rgs.schedule_id = #{scheduleId}
+        FOR UPDATE
+    </select>
+
+    <insert id="insertReportExecution" parameterType="dev.olegz.vf.report.domain.ReportExecution">
+        INSERT INTO report_execution_history (
+            report_id, schedule_id, schedule_date, execution_date, execution_time, on_demand,
+            output, object_id, analytic_output, organization_id, error_message, row_count, metadata)
+        VALUES (
+            #{reportId}, #{scheduleId}, #{scheduleDate}, #{executionDate}, #{executionTime}, #{onDemand},
+            #{blobOutput}, #{objectId}, #{analyticOutput}, #{organizationId}, #{errorMessage}, #{rowCount},
+            #{metadata,typeHandler=dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler})
+    </insert>
+
+    <select id="selectReportExecutionByObjectId" resultType="dev.olegz.vf.report.domain.ReportExecution">
+        SELECT r.report_id, r.report_name, e.execution_date, e.error_message, e.output AS "blobOutput",
+               EXISTS(SELECT 1 FROM report_group_schedules s WHERE s.schedule_id = e.schedule_id AND s.report_group_id = 1) AS multi_cloud
+        FROM report_execution_history e
+            JOIN reports r ON r.report_id = e.report_id
+        WHERE e.object_id = #{objectId}
+        LIMIT 1
+    </select>
+
+    <resultMap id="scheduledReportExecutionsMap" type="dev.olegz.vf.report.domain.ReportExecution">
+        <result column="execution_date" property="executionDate"/>
+        <result column="schedule_date" property="scheduleDate"/>
+        <result column="report_id" property="reportId"/>
+        <result column="report_name" property="reportName"/>
+        <result column="schedule_id" property="scheduleId"/>
+        <result column="row_count" property="rowCount"/>
+        <result column="execution_time" property="executionTime"/>
+        <result column="metadata" property="metadata" typeHandler="dev.olegz.vf.registry.dao.handlers.StringMapTypeHandler"/>
+        <result column="analytic_output" property="analyticOutput"/>
+        <result column="object_id" property="objectId"/>
+        <result column="organization_id" property="organizationId"/>
+        <result column="error_message" property="errorMessage"/>
+    </resultMap>
+
+    <select id="selectScheduledReportExecutions" resultMap="scheduledReportExecutionsMap" fetchSize="20">
+        SELECT r.report_id, r.report_name, e.schedule_id, e.row_count, e.execution_date, e.schedule_date,
+               e.execution_time, e.metadata, e.analytic_output, e.object_id, e.organization_id, e.error_message
+        FROM report_execution_history e
+            JOIN report_group_schedules rgs ON rgs.schedule_id = e.schedule_id
+            JOIN reports r ON r.report_id = e.report_id
+        WHERE e.execution_date &gt;= #{startDate} AND e.execution_date &lt; #{endDate}
+          AND rgs.report_id = #{reportId} AND rgs.report_group_id = #{reportGroupId}
+          AND e.schedule_id IS NOT NULL
+        <choose>
+            <when test="organizationId == null">AND e.organization_id IS NULL</when>
+            <otherwise>AND e.organization_id = #{organizationId}</otherwise>
+        </choose>
+    </select>
+
+    <delete id="deleteOnDemandReportExecutions">
+        DELETE FROM report_execution_history
+        WHERE on_demand
+        AND execution_date &lt; #{expirationDate}
+    </delete>
+
+    <select id="executeQuery" resultType="dev.olegz.vf.report.domain.ReportData" fetchSize="50">
+        ${query}
+    </select>
+
+</mapper>

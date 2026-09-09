@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaCodeUploadMapper">
+    <resultMap id="codeUploadResultMap" type="dev.olegz.vf.core.domain.lambdabuild.LambdaCodeUpload">
+        <id property="uploadId" column="upload_id"/>
+        <result property="lambdaId" column="lambda_id"/>
+        <result property="lambdaVersionId" column="lambda_version_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="status" column="upload_status"/>
+        <result property="statusDate" column="status_date"/>
+        <result property="message" column="message"/>
+        <result property="arch" column="arch"/>
+        <result property="codeObjectId" column="code_object_id"/>
+        <result property="stageImage" column="stage_image"/>
+        <result property="baseImage" column="base_image"/>
+        <result property="repoName" column="repo_name"/>
+        <result property="functionName" column="function_name"/>
+        <result property="asyncFunctionName" column="async_function_name"/>
+        <result property="functionDeletionDate" column="function_deletion_date"/>
+        <result property="functionDeletionInfo" column="function_deletion_info"/>
+        <result property="memory" column="memory"/>
+        <result property="timeout" column="timeout"/>
+        <association property="lambda" javaType="dev.olegz.vf.core.domain.lambdaversion.Lambda">
+            <id property="lambdaId" column="lambda_id"/>
+            <result property="devTeamId" column="dev_team_id"/>
+            <result property="lambdaName" column="name"/>
+            <result property="codeUploadId" column="code_upload_id"/>
+        </association>
+        <association property="lambdaVersion" javaType="dev.olegz.vf.core.domain.lambdaversion.LambdaVersion">
+            <id property="lambdaVersionId" column="lambda_version_id"/>
+            <result property="version" column="lambda_version"/>
+            <result property="status" column="lambda_version_status"/>
+        </association>
+    </resultMap>
+
+    <insert id="insertLambdaCodeUpload" parameterType="dev.olegz.vf.core.domain.lambdabuild.LambdaCodeUpload"
+            useGeneratedKeys="true" keyProperty="uploadId">
+        INSERT INTO lambda_code_uploads
+            (status, status_date, code_object_id, arch, lambda_id, lambda_version_id, user_id, stage_image, base_image, repo_name)
+        VALUES
+            (#{status}, #{statusDate}, #{codeObjectId}, #{arch}, #{lambdaId}, #{lambdaVersionId}, #{userId},
+             #{stageImage}, #{baseImage}, #{repoName})
+    </insert>
+
+    <update id="updateLambdaCodeUpload">
+        UPDATE lambda_code_uploads
+        SET status = #{status},
+            status_date = #{statusDate},
+            message = #{message},
+            function_name = #{functionName},
+            async_function_name = #{asyncFunctionName},
+            memory = #{memory},
+            timeout = #{timeout}
+        WHERE upload_id = #{uploadId}
+          AND status != #{status}
+    </update>
+
+    <update id="updateInProgressLambdaCodeUploadFunctions">
+        UPDATE lambda_code_uploads
+        SET function_name = #{functionName},
+            async_function_name = #{asyncFunctionName}
+        WHERE upload_id = #{uploadId}
+          AND status = 'IN_PROGRESS'
+    </update>
+
+    <update id="updateLambdaCodeUploadFunctionDeletionDate">
+        UPDATE lambda_code_uploads
+        SET function_deletion_date = #{deletionDate},
+            function_deletion_info = #{deletionInfo}
+        WHERE upload_id = #{uploadId}
+    </update>
+
+    <select id="selectCodeUploadById" resultType="dev.olegz.vf.core.domain.lambdabuild.LambdaCodeUpload">
+        SELECT upload_id, lambda_id, lambda_version_id, user_id, arch, code_object_id,
+               stage_image, base_image, repo_name, function_name, async_function_name,
+               status, status_date, message, memory, timeout,
+               function_deletion_date, function_deletion_info
+        FROM lambda_code_uploads
+        WHERE upload_id = #{uploadId}
+    </select>
+
+    <select id="selectCodeUpload" resultMap="codeUploadResultMap">
+        SELECT u.upload_id, u.lambda_id, u.lambda_version_id, u.user_id, u.arch, u.code_object_id,
+               u.stage_image, u.base_image, u.repo_name, u.function_name, u.async_function_name,
+               u.status AS upload_status, u.status_date, u.message,
+               u.function_deletion_date, u.function_deletion_info, u.memory, u.timeout,
+               b.name, b.code_upload_id, b.dev_team_id, h.status AS lambda_version_status, h.lambda_version
+        FROM lambda_code_uploads u
+        JOIN lambdas b ON b.lambda_id = u.lambda_id
+        JOIN dev_teams t ON t.dev_team_id = b.dev_team_id
+        JOIN lambda_versions h ON h.lambda_version_id = u.lambda_version_id
+        WHERE u.upload_id = #{uploadId}
+    </select>
+
+    <select id="selectCodeUploadByLambdaId" resultMap="codeUploadResultMap">
+        SELECT u.upload_id, u.lambda_id, u.lambda_version_id, u.user_id, u.arch, u.code_object_id,
+               u.stage_image, u.base_image, u.repo_name, u.function_name, u.async_function_name,
+               u.status AS upload_status, u.status_date, u.message,
+               u.function_deletion_date, u.function_deletion_info, u.memory, u.timeout,
+               b.name, b.code_upload_id, b.dev_team_id, h.status AS lambda_version_status, h.lambda_version
+        FROM lambda_code_uploads u
+        JOIN lambdas b ON b.lambda_id = u.lambda_id
+        JOIN dev_teams t ON t.dev_team_id = b.dev_team_id
+        JOIN lambda_versions h ON h.lambda_version_id = u.lambda_version_id
+        WHERE u.upload_id = #{uploadId}
+          AND u.lambda_id = #{lambdaId}
+    </select>
+
+    <select id="selectExpiredLambdaCodeUploads" resultMap="codeUploadResultMap">
+        SELECT u.upload_id, u.lambda_id, u.lambda_version_id, u.user_id, u.arch, u.code_object_id,
+               u.stage_image, u.base_image, u.repo_name, u.function_name, u.async_function_name,
+               u.status AS upload_status, u.status_date, u.message,
+               u.function_deletion_date, u.function_deletion_info, u.memory, u.timeout,
+               b.name, b.code_upload_id, b.dev_team_id, h.status AS lambda_version_status, h.lambda_version
+        FROM lambda_code_uploads u
+        JOIN lambdas b ON b.code_upload_id = u.upload_id
+        JOIN lambda_versions h ON h.lambda_version_id = u.lambda_version_id
+        WHERE u.status = 'IN_PROGRESS'
+          AND u.status_date &lt;= #{expiredBefore}
+        ORDER BY u.status_date, u.upload_id
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectInactiveCodeUploads" resultType="dev.olegz.vf.core.domain.lambdabuild.LambdaCodeUpload">
+        SELECT u.upload_id, u.code_object_id, u.base_image, u.repo_name, u.function_name,
+               u.async_function_name, u.lambda_id, u.lambda_version_id
+        FROM lambda_code_uploads u
+        WHERE u.function_deletion_date IS NULL
+          AND NOT EXISTS(
+            SELECT 1
+            FROM lambdas b
+            WHERE b.lambda_id = u.lambda_id
+              AND b.code_upload_id = u.upload_id)
+          AND NOT EXISTS(
+            SELECT 1
+            FROM lambda_versions h
+            WHERE h.lambda_id = u.lambda_id
+              AND h.status IN ('UNDER_TEST', 'PRODUCTION', 'FALLBACK')
+              AND h.code_upload_id = u.upload_id)
+    </select>
+</mapper>

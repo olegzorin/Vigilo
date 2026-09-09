@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.DevTeamMapper">
+
+    <!-- List view: active member and lambda counts only, without the member/lambda collections. -->
+    <select id="selectDevTeams" resultType="dev.olegz.vf.core.domain.lambdaversion.DevTeam" fetchSize="20">
+        SELECT t.dev_team_id, t.owner_user_id, t.name, t.description,
+            (SELECT COUNT(1)
+                FROM dev_team_members m
+                WHERE m.dev_team_id = t.dev_team_id
+                    AND m.start_date &lt;= NOW() AND (m.end_date IS NULL OR m.end_date &gt; NOW())) AS members_count,
+            (SELECT COUNT(1)
+                FROM lambdas b
+                WHERE b.dev_team_id = t.dev_team_id) AS lambdas_count
+        FROM dev_teams t
+        <if test="userId != null">
+            WHERE EXISTS (SELECT 1
+                FROM dev_team_members um
+                WHERE um.dev_team_id = t.dev_team_id AND um.user_id = #{userId})
+        </if>
+        ORDER BY t.dev_team_id
+    </select>
+
+    <!-- Detail view: full member and lambda collections, without the counts. -->
+    <resultMap id="devTeamDetailResultMap" type="dev.olegz.vf.core.domain.lambdaversion.DevTeam">
+        <id property="devTeamId" column="dev_team_id"/>
+        <result property="ownerUserId" column="owner_user_id"/>
+        <result property="name" column="name"/>
+        <result property="description" column="description"/>
+        <collection property="members" ofType="dev.olegz.vf.core.domain.lambdaversion.DevTeamMember">
+            <id property="userId" column="user_id"/>
+            <result property="startDate" column="start_date"/>
+            <result property="endDate" column="end_date"/>
+        </collection>
+        <collection property="lambdas" ofType="dev.olegz.vf.core.domain.lambdaversion.Lambda">
+            <id property="lambdaId" column="lambda_id"/>
+            <result property="lambdaName" column="lambda_name"/>
+            <result property="description" column="lambda_description"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectDevTeam" resultMap="devTeamDetailResultMap">
+        SELECT t.dev_team_id, t.owner_user_id, t.name, t.description,
+            m.user_id, m.start_date, m.end_date,
+            b.lambda_id, b.name AS lambda_name, b.description AS lambda_description
+        FROM dev_teams t
+        LEFT OUTER JOIN dev_team_members m ON m.dev_team_id = t.dev_team_id
+        LEFT OUTER JOIN lambdas b ON b.dev_team_id = t.dev_team_id
+        WHERE t.dev_team_id = #{devTeamId}
+        ORDER BY m.user_id, b.lambda_id
+    </select>
+
+    <select id="checkDevTeamMember" resultType="boolean">
+        SELECT EXISTS (SELECT 1
+            FROM dev_team_members
+            WHERE dev_team_id = #{devTeamId} AND user_id = #{userId}
+                AND start_date &lt;= NOW()
+                AND (end_date IS NULL OR end_date &gt; NOW()))
+    </select>
+
+    <!-- For tests only -->
+    <insert id="insertDevTeam" useGeneratedKeys="true" keyProperty="devTeamId">
+        INSERT INTO dev_teams (owner_user_id, name, description)
+        VALUES (#{ownerUserId}, #{name}, #{description})
+    </insert>
+
+    <!-- For tests only -->
+    <insert id="insertDevTeamMember">
+        INSERT INTO dev_team_members (dev_team_id, user_id, start_date, end_date)
+        VALUES (#{devTeamId}, #{userId}, #{startDate}, #{endDate})
+    </insert>
+
+    <delete id="deleteDevTeamMember">
+        DELETE FROM dev_team_members
+        WHERE dev_team_id = #{devTeamId} AND user_id = #{userId}
+    </delete>
+
+</mapper>

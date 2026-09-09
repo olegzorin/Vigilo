@@ -1,0 +1,11 @@
+id: 6
+name: LocationCreation
+type: summary
+displayName: Location Creation Date
+description: Displays locations and their creation date in the current organization.
+query: queries/6_LocationCreation.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization, placeholder: Select organization... }
+fields:
+  - { name: locationId, column: id, type: integer, displayName: Location ID }
+  - { name: creationDate, column: t1, type: datetime, displayName: Location creation date }

@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.registry.dao.mapper.UserLocationMapper">
+
+    <resultMap id="userLocationResultMap" type="dev.olegz.vf.registry.domain.account.LocationUser">
+        <id property="userId" column="user_id"/>
+        <id property="locationId" column="location_id"/>
+        <id property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+    </resultMap>
+
+    <select id="lockUser" resultType="Integer">
+        SELECT user_id
+        FROM users
+        WHERE user_id = #{userId}
+        FOR UPDATE
+    </select>
+
+    <!-- Insert only if the user has no active (not yet ended) location assignment. -->
+    <insert id="insertUserLocation">
+        INSERT INTO user_locations (user_id, location_id, start_date, end_date)
+        SELECT #{userId}, #{locationId}, #{startDate}, #{endDate}
+        WHERE NOT EXISTS (
+            SELECT 1 FROM user_locations
+            WHERE user_id = #{userId}
+                AND (end_date IS NULL OR end_date &gt; NOW())
+        )
+    </insert>
+
+    <select id="selectUserLocation" resultMap="userLocationResultMap">
+        SELECT user_id, location_id, start_date, end_date
+        FROM user_locations
+        WHERE user_id = #{userId}
+            AND location_id = #{locationId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+    </select>
+
+    <select id="selectUserLocationsByUser" resultMap="userLocationResultMap">
+        SELECT user_id, location_id, start_date, end_date
+        FROM user_locations
+        WHERE user_id = #{userId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+        ORDER BY start_date
+    </select>
+
+    <select id="selectUserLocationsByLocation" resultMap="userLocationResultMap">
+        SELECT user_id, location_id, start_date, end_date
+        FROM user_locations
+        WHERE location_id = #{locationId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+        ORDER BY start_date
+    </select>
+
+    <select id="hasActiveAssignments" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM user_locations
+            WHERE location_id = #{locationId}
+                AND (end_date IS NULL OR end_date &gt; NOW())
+        )
+    </select>
+
+    <update id="deleteUserLocation">
+        UPDATE user_locations SET end_date = NOW()
+        WHERE user_id = #{userId}
+            AND location_id = #{locationId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+    </update>
+
+</mapper>

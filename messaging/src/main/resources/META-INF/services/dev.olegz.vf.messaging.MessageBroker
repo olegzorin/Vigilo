@@ -1,0 +1,5 @@
+# Discovered by java.util.ServiceLoader; Messaging selects one by id() via the vf.messaging.broker property.
+# With no property set the first entry wins, so Kafka stays the default.
+dev.olegz.vf.messaging.providers.kafka.KafkaMessageBroker
+dev.olegz.vf.messaging.providers.artemis.ArtemisMessageBroker
+dev.olegz.vf.messaging.providers.sqs.SqsMessageBroker

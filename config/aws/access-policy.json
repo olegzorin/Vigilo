@@ -1,0 +1,49 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudWatchLogsAccess",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:CreateLogStream",
+        "logs:PutLogEvents"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SQSAccess",
+      "Effect": "Allow",
+      "Action": [
+        "sqs:GetQueueUrl",
+        "sqs:SendMessage"
+      ],
+      "Resource": [
+        "arn:aws:sqs:us-east-1:__AWS_ACCOUNT_ID__:dev-botlab-lambda-results"
+      ]
+    },
+    {
+      "Sid": "SNSAccess",
+      "Effect": "Allow",
+      "Action": [
+        "sns:Publish"
+      ],
+      "Resource": [
+        "arn:aws:sns:us-east-1:__AWS_ACCOUNT_ID__:dev-botlab-lambda-build-errors",
+        "arn:aws:sns:us-east-1:__AWS_ACCOUNT_ID__:dev-botlab-lambda-runtime-errors"
+      ]
+    },
+    {
+      "Sid": "VPCAccess",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface",
+        "ec2:AssignPrivateIpAddresses",
+        "ec2:UnassignPrivateIpAddresses"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

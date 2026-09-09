@@ -1,0 +1,1154 @@
+{
+  "info": {
+    "name": "Vigilo Framework API",
+    "description": "Vigilo Framework REST API.\n\nBase path: `/vf` on port 8086.\nAuth: send the JWT user key in the `API_KEY` header. Get one via **Users > Authenticate** (public) — its post-response script stores it into the active environment automatically, so every protected request works afterward. Lambda runtime state, variables, execution, and alerts use `LAMBDA_API_KEY`.\n\nJSON responses share a base envelope: `resultCode`, `resultCodeMessage`, `collectionTotalSize`, `resultCodeDesc`. A successful lambda-variable GET instead returns raw bytes, or HTTP 204 when absent.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      { "key": "key", "value": "API_KEY", "type": "string" },
+      { "key": "value", "value": "{{apiKey}}", "type": "string" },
+      { "key": "in", "value": "header", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8086/vf", "type": "string" },
+    { "key": "apiKey", "value": "", "type": "string" },
+    { "key": "lambdaApiKey", "value": "", "type": "string" },
+    { "key": "userId", "value": "", "type": "string" },
+    { "key": "organizationId", "value": "", "type": "string" },
+    { "key": "locationId", "value": "", "type": "string" },
+    { "key": "deviceUuid", "value": "", "type": "string" },
+    { "key": "deviceTypeId", "value": "1", "type": "string" },
+    { "key": "invocationToken", "value": "", "type": "string" },
+    { "key": "awsRequestId", "value": "", "type": "string" },
+    { "key": "logStreamName", "value": "", "type": "string" },
+    { "key": "variableName", "value": "example", "type": "string" },
+    { "key": "lambdaName", "value": "", "type": "string" },
+    { "key": "lambdaId", "value": "", "type": "string" },
+    { "key": "buildTarget", "value": "3.14-arm64", "type": "string" },
+    { "key": "lambdaAssignmentId", "value": "", "type": "string" },
+    { "key": "devTeamId", "value": "", "type": "string" },
+    { "key": "reportId", "value": "", "type": "string" },
+    { "key": "reportGroupId", "value": "", "type": "string" },
+    { "key": "reportStartDate", "value": "2026-08-19T00:00:00Z", "type": "string" },
+    { "key": "reportEndDate", "value": "2026-08-20T00:00:00Z", "type": "string" },
+    { "key": "reportDownloadToken", "value": "", "type": "string" },
+    { "key": "uploadId", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "Authenticate (public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.apiKey) {",
+                  "    pm.environment.set('apiKey', json.apiKey);",
+                  "    console.log('Stored apiKey into the active environment.');",
+                  "}",
+                  "if (json.user && json.user.userId) {",
+                  "    pm.environment.set('userId', json.user.userId);",
+                  "}",
+                  "if (json.location && json.location.locationId) {",
+                  "    pm.environment.set('locationId', json.location.locationId);",
+                  "}",
+                  "pm.test('status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"\",\n  \"password\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/authenticate",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "authenticate"]
+            },
+            "description": "Credentials-based login. Public — no API_KEY required. Returns the user, API key, and the user's active assigned location when present; the post-response script saves `apiKey`, `user.userId`, and `location.locationId` into the active environment."
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"\",\n  \"password\": \"\",\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"phone\": \"\",\n  \"organizationId\": 0\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"]
+            },
+            "description": "Admin-only. Caller must be an organization admin; new user must be in the same organization."
+          }
+        },
+        {
+          "name": "Search Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/users?firstName=&lastName=&email=",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                { "key": "firstName", "value": "", "disabled": true },
+                { "key": "lastName", "value": "", "disabled": true },
+                { "key": "email", "value": "", "disabled": true }
+              ]
+            },
+            "description": "Search non-deleted users by optional case-insensitive partial first-name, last-name, and email filters. Organization admins can view users in their organization; ordinary users can only receive their own account. Responses use createdAt and deletedAt lifecycle fields; any non-null deletedAt is terminal."
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"phone\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            },
+            "description": "Update own profile. All fields optional."
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/password",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "password"]
+            },
+            "description": "Change own password."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Organizations",
+      "item": [
+        {
+          "name": "Get Organization",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/organizations/{{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["organizations", "{{organizationId}}"]
+            },
+            "description": "Get the caller's non-deleted organization. Responses use createdAt and deletedAt lifecycle fields; any non-null deletedAt is terminal. The organizationId must match the caller's organization."
+          }
+        },
+        {
+          "name": "Update Organization",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizationName\": \"\",\n  \"address\": {\n    \"addrStreet1\": \"\",\n    \"addrStreet2\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"countryCode\": \"\",\n    \"postalCode\": \"\",\n    \"timezone\": \"\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/organizations/{{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["organizations", "{{organizationId}}"]
+            },
+            "description": "Admin-only. Replaces the organization name and address; managed identity, hierarchy, admin, createdAt, and deletedAt fields are preserved."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Locations",
+      "item": [
+        {
+          "name": "List Organization Locations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{baseUrl}}/locations", "host": ["{{baseUrl}}"], "path": ["locations"] },
+            "description": "Admin-only. Returns all non-deleted locations in the caller's organization. Responses use createdAt and deletedAt lifecycle fields; any non-null deletedAt is terminal."
+          }
+        },
+        {
+          "name": "Get Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}"]
+            },
+            "description": "Admin-only. Returns a location in the caller's organization, location.currentState with state and stateDate when available, and all actively assigned users."
+          }
+        },
+        {
+          "name": "Update Location Current State (lambda)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [
+              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state\": \"HOME\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}/current-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}", "current-state"]
+            },
+            "description": "Lambda-authenticated. Stores the state for the lambda's assigned location and returns the saved state with its server-generated stateDate."
+          }
+        },
+        {
+          "name": "Create Location",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const json = pm.response.json();",
+                "if (json.location && json.location.locationId) pm.environment.set('locationId', json.location.locationId);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationName\": \"\",\n  \"organizationId\": {{organizationId}},\n  \"address\": {\n    \"addrStreet1\": \"\",\n    \"addrStreet2\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"countryCode\": \"\",\n    \"postalCode\": \"\",\n    \"timezone\": \"\"\n  }\n}"
+            },
+            "url": { "raw": "{{baseUrl}}/locations", "host": ["{{baseUrl}}"], "path": ["locations"] },
+            "description": "Admin-only. Creates a location in the caller's organization."
+          }
+        },
+        {
+          "name": "Update Location",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"locationName\": \"\",\n  \"address\": {\n    \"addrStreet1\": \"\",\n    \"addrStreet2\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"countryCode\": \"\",\n    \"postalCode\": \"\",\n    \"timezone\": \"\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}"]
+            },
+            "description": "Admin-only. Replaces location name and address."
+          }
+        },
+        {
+          "name": "Delete Location",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}"]
+            },
+            "description": "Admin-only. Permanently marks the location deleted by setting deletedAt, only when it has no active user or device assignments."
+          }
+        },
+        {
+          "name": "Assign User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}", "users", "{{userId}}"]
+            },
+            "description": "Admin-only. A user may have only one active location assignment."
+          }
+        },
+        {
+          "name": "Cancel User Assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}", "users", "{{userId}}"]
+            },
+            "description": "Admin-only. Sets the active assignment's endDate; history is retained."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Devices",
+      "item": [
+        {
+          "name": "List Devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/devices?typeId={{deviceTypeId}}&locationId={{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices"],
+              "query": [
+                { "key": "typeId", "value": "{{deviceTypeId}}", "description": "optional device type filter", "disabled": true },
+                { "key": "locationId", "value": "{{locationId}}", "description": "optional active location filter", "disabled": true }
+              ]
+            },
+            "description": "Admins list devices in their organization. Ordinary users receive only devices assigned to their current location. Each device has compact assignment metadata (locationId, startDate, endDate) when assigned. Assignment location details and current state are omitted."
+          }
+        },
+        {
+          "name": "Get Device",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/devices/{{deviceUuid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "{{deviceUuid}}"]
+            },
+            "description": "Admins may retrieve any device in their organization. Ordinary users may retrieve a device only while it is assigned to their current location. The response includes assignment location details and current state with measuredAt and receivedAt; assignment.deviceUuid is omitted as redundant."
+          }
+        },
+        {
+          "name": "Update Device Current State (lambda)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [
+              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"state\": {\n    \"status\": \"online\"\n  },\n  \"measuredAt\": \"2026-07-24T12:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/{{deviceUuid}}/current-state",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "{{deviceUuid}}", "current-state"]
+            },
+            "description": "Lambda-authenticated. Stores state only for a device actively assigned to the lambda's location. measuredAt is supplied by the lambda and receivedAt is set by the server."
+          }
+        },
+        {
+          "name": "Create Device",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "type": "text/javascript",
+              "exec": [
+                "const json = pm.response.json();",
+                "if (json.device && json.device.deviceUuid) pm.environment.set('deviceUuid', json.device.deviceUuid);"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"deviceUuid\": \"{{deviceUuid}}\",\n  \"organizationId\": {{organizationId}},\n  \"typeId\": {{deviceTypeId}},\n  \"deviceName\": \"\",\n  \"serialNumber\": \"\",\n  \"model\": \"\",\n  \"vendor\": \"\",\n  \"manufacturer\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices"]
+            },
+            "description": "Admin-only. Creates a device in the caller's organization."
+          }
+        },
+        {
+          "name": "Update Device",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"typeId\": {{deviceTypeId}},\n  \"deviceName\": \"\",\n  \"serialNumber\": \"\",\n  \"model\": \"\",\n  \"vendor\": \"\",\n  \"manufacturer\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/devices/{{deviceUuid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["devices", "{{deviceUuid}}"]
+            },
+            "description": "Admin-only. Updates a device in the caller's organization."
+          }
+        },
+        {
+          "name": "Assign Device",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}/devices/{{deviceUuid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}", "devices", "{{deviceUuid}}"]
+            },
+            "description": "Admin-only. A device may have only one active location assignment."
+          }
+        },
+        {
+          "name": "Cancel Device Assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/locations/{{locationId}}/devices/{{deviceUuid}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["locations", "{{locationId}}", "devices", "{{deviceUuid}}"]
+            },
+            "description": "Admin-only. Sets the assignment endDate and retains its history."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lambda Runtime",
+      "item": [
+        {
+          "name": "Start Run (lambda)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/start?invocationToken={{invocationToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["start"],
+              "query": [
+                { "key": "invocationToken", "value": "{{invocationToken}}", "description": "invocation token supplied in the lambda input" },
+                { "key": "awsRequestId", "value": "{{awsRequestId}}", "description": "Lambda context aws_request_id", "disabled": true },
+                { "key": "logStreamName", "value": "{{logStreamName}}", "description": "Lambda context log_stream_name", "disabled": true }
+              ]
+            },
+            "description": "Lambda-authenticated. Marks the matching current run as started. Continue execution only when resultCode is 0. Enable the AWS parameters for ASYNC Lambda invocations."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lambda Variables",
+      "item": [
+        {
+          "name": "Get Variable (lambda)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [
+              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/variables/{{variableName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["variables", "{{variableName}}"],
+              "query": [
+                { "key": "shared", "value": "true", "description": "use location-shared scope", "disabled": true }
+              ]
+            },
+            "description": "Lambda-authenticated. Returns the current-generation assignment-private binary value, or HTTP 204 when absent. Reset invalidates the private generation. Enable shared to use the unaffected location scope."
+          }
+        },
+        {
+          "name": "Put Variable (lambda)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "PUT",
+            "header": [
+              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/octet-stream", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "example value",
+              "options": { "raw": { "language": "text" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/variables/{{variableName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["variables", "{{variableName}}"],
+              "query": [
+                { "key": "shared", "value": "true", "description": "use location-shared scope", "disabled": true }
+              ]
+            },
+            "description": "Lambda-authenticated. Stores arbitrary bytes in the current assignment-private generation; stale lambda keys are rejected after reset. Enable shared to use the unaffected location scope."
+          }
+        },
+        {
+          "name": "Delete Variable (lambda)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "DELETE",
+            "header": [
+              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/variables/{{variableName}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["variables", "{{variableName}}"],
+              "query": [
+                { "key": "shared", "value": "true", "description": "use location-shared scope", "disabled": true }
+              ]
+            },
+            "description": "Lambda-authenticated. Deletes an assignment-private variable. Enable shared to delete from the lambda's location scope."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lambda Alerts",
+      "item": [
+        {
+          "name": "Create Dangerous-State Alert (lambda)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
+              { "key": "Content-Type", "value": "application/json", "type": "text" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idempotencyKey\": \"{{lambdaAssignmentId}}:demo-event:danger-transition-v1\",\n  \"ruleId\": \"danger-transition-v1\",\n  \"severity\": \"CRITICAL\",\n  \"locationId\": {{locationId}},\n  \"occurredAt\": 1750000000000,\n  \"runId\": 1750000001000,\n  \"eventKey\": \"demo-event\",\n  \"reasons\": [\n    {\n      \"resourceType\": \"DEVICE\",\n      \"resourceId\": \"{{deviceUuid}}\",\n      \"field\": \"alarm\",\n      \"previousValue\": false,\n      \"newValue\": true\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/alerts",
+              "host": ["{{baseUrl}}"],
+              "path": ["alerts"]
+            },
+            "description": "Lambda-authenticated. Creates an OPEN alert after authorizing all referenced resources. Repeating the same idempotency key and payload returns the existing alert with created=false."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lambda Configuration",
+      "item": [
+        {
+          "name": "List Lambdas",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas?devTeamId={{devTeamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas"],
+              "query": [{ "key": "devTeamId", "value": "{{devTeamId}}", "description": "optional filter" }]
+            }
+          }
+        },
+        {
+          "name": "Create Lambda",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.lambdaId) {",
+                  "    pm.environment.set('lambdaId', json.lambdaId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lambdaName\": \"{{lambdaName}}\",\n  \"devTeamId\": {{devTeamId}},\n  \"description\": \"\",\n  \"metadata\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lambdas",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas"]
+            }
+          }
+        },
+        {
+          "name": "Update Lambda",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lambdaId\": {{lambdaId}},\n  \"description\": \"\",\n  \"metadata\": {}\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lambdas",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas"]
+            }
+          }
+        },
+        {
+          "name": "List Lambda Versions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/versions?lambdaId={{lambdaId}}&status=&version=",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "versions"],
+              "query": [
+                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" },
+                { "key": "status", "value": "", "description": "optional, repeatable" },
+                { "key": "version", "value": "", "description": "optional" }
+              ]
+            },
+            "description": "List lambda versions. The `trigger` bitmask uses 1 = schedule, 2 = location event, and 4 = device event. Scheduled executions run through the separate `asyncFunction` lane."
+          }
+        },
+        {
+          "name": "Create Lambda Version",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bump\": \"PATCH\",\n  \"whatsnew\": \"\",\n  \"schedules\": {},\n  \"trigger\": 2,\n  \"dataStreamAddresses\": []\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/versions?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "versions"],
+              "query": [
+                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+              ]
+            },
+            "description": "Create the next lambda version. `bump` must be `MAJOR`, `MINOR`, or `PATCH`; the server derives the semantic version number. `trigger` configures trigger event types."
+          }
+        },
+        {
+          "name": "Promote Test Version to Production",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/versions/promote?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "versions", "promote"],
+              "query": [
+                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+              ]
+            },
+            "description": "Promote the version under test to production and retain the previous production version as the rollback fallback."
+          }
+        },
+        {
+          "name": "Discard Test Version",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/versions/discard?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "versions", "discard"],
+              "query": [
+                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+              ]
+            },
+            "description": "Discard the development version currently under test."
+          }
+        },
+        {
+          "name": "Rollback Production Version",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/versions/rollback?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "versions", "rollback"],
+              "query": [
+                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+              ]
+            },
+            "description": "Archive the current production version and restore the fallback version to production."
+          }
+        },
+        {
+          "name": "Delete Active Lambda Versions",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/versions?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "versions"],
+              "query": [{ "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lambda Code Uploads",
+      "item": [
+        {
+          "name": "Get Available Python Image Tags",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/python-image-tags",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "python-image-tags"]
+            },
+            "description": "Returns available AWS Lambda Python image tags, including architecture, in `result`."
+          }
+        },
+        {
+          "name": "Upload Lambda Code",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.requestId) {",
+                  "    pm.environment.set('uploadId', json.requestId);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/zip" }],
+            "body": { "mode": "file", "file": { "src": "" } },
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/code-uploads?lambdaId={{lambdaId}}&buildTarget={{buildTarget}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "code-uploads"],
+              "query": [
+                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" },
+                { "key": "buildTarget", "value": "{{buildTarget}}", "description": "required; Python version and processor architecture, such as 3.14-arm64; select a value returned by Get Available Python Image Tags" }
+              ]
+            },
+            "description": "Body is a raw zip or tar archive (Content-Type application/zip or application/x-tar). `buildTarget` combines the Python version and processor architecture in `<python-version>-<architecture>` form and must be one of the values returned by Get Available Python Image Tags. Response `requestId` is saved to the `uploadId` variable."
+          }
+        },
+        {
+          "name": "Get Lambda Code Upload Status",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.result) {",
+                  "    pm.expect(json.result.status).to.be.oneOf(['CREATED', 'IN_PROGRESS', 'COMPLETED', 'FAILED']);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambdas/code-uploads/{{uploadId}}?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambdas", "code-uploads", "{{uploadId}}"],
+              "query": [
+                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+              ]
+            },
+            "description": "Returns `result.status` (`CREATED`, `IN_PROGRESS`, `COMPLETED`, or `FAILED`) and an optional `result.message`. Poll while the status is `CREATED` or `IN_PROGRESS`; `COMPLETED` and `FAILED` are terminal."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dev Teams",
+      "item": [
+        {
+          "name": "List Dev Teams",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/teams?userId={{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["teams"],
+              "query": [{ "key": "userId", "value": "{{userId}}", "description": "optional" }]
+            }
+          }
+        },
+        {
+          "name": "Get Dev Team",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{devTeamId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["teams", "{{devTeamId}}"]
+            }
+          }
+        },
+        {
+          "name": "Create Dev Team",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.team) pm.collectionVariables.set('devTeamId', json.team.devTeamId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"API Dev Team\",\n  \"description\": \"Created through the Dev Teams API\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/teams",
+              "host": ["{{baseUrl}}"],
+              "path": ["teams"]
+            },
+            "description": "The authenticated caller becomes owner and an active member."
+          }
+        },
+        {
+          "name": "Add Dev Team Member",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{devTeamId}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["teams", "{{devTeamId}}", "users", "{{userId}}"]
+            },
+            "description": "Owner-only. Adds the selected user to the team."
+          }
+        },
+        {
+          "name": "Delete Dev Team Member",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{devTeamId}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["teams", "{{devTeamId}}", "users", "{{userId}}"]
+            },
+            "description": "Owner-only. The owner cannot remove themselves."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Lambda Assignments",
+      "item": [
+        {
+          "name": "List Assignments by Lambda",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments"],
+              "query": [{ "key": "lambdaId", "value": "{{lambdaId}}", "description": "required; omit locationId" }]
+            }
+          }
+        },
+        {
+          "name": "List Assignments by Location",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments?locationId={{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments"],
+              "query": [{ "key": "locationId", "value": "{{locationId}}", "description": "required; omit lambdaId" }]
+            }
+          }
+        },
+        {
+          "name": "Create Lambda Assignment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.lambdaAssignmentId) pm.environment.set('lambdaAssignmentId', json.lambdaAssignmentId);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lambdaId\": {{lambdaId}},\n  \"locationId\": {{locationId}},\n  \"testing\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments"]
+            }
+          }
+        },
+        {
+          "name": "Get Lambda Assignment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments", "{{lambdaAssignmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Generate Lambda API Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.lambdaApiKey) pm.environment.set('lambdaApiKey', json.lambdaApiKey);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}/lambda-api-key",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments", "{{lambdaAssignmentId}}", "lambda-api-key"]
+            },
+            "description": "Generates a time-limited LAMBDA_API_KEY. Allowed for the location's assigned user or the organization's admin."
+          }
+        },
+        {
+          "name": "Update Lambda Assignment",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments", "{{lambdaAssignmentId}}"]
+            },
+            "description": "Set enabled to true to enable the assignment or false to end it immediately."
+          }
+        },
+        {
+          "name": "Cancel Lambda Assignment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments", "{{lambdaAssignmentId}}"]
+            }
+          }
+        },
+        {
+          "name": "Cancel Assignments by Lambda",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments?lambdaId={{lambdaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments"],
+              "query": [{ "key": "lambdaId", "value": "{{lambdaId}}", "description": "required; omit locationId" }]
+            }
+          }
+        },
+        {
+          "name": "Cancel Assignments by Location",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/lambda-assignments?locationId={{locationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["lambda-assignments"],
+              "query": [{ "key": "locationId", "value": "{{locationId}}", "description": "required; omit lambdaId" }]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reports",
+      "item": [
+        {
+          "name": "Get Report Groups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/groups/{{organizationId}}?all=true",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "groups", "{{organizationId}}"],
+              "query": [{ "key": "all", "value": "true" }]
+            }
+          }
+        },
+        {
+          "name": "Assign Report Group to Organization",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/groups/{{organizationId}}?reportGroupId={{reportGroupId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "groups", "{{organizationId}}"],
+              "query": [{ "key": "reportGroupId", "value": "{{reportGroupId}}" }]
+            },
+            "description": "Requires an admin of the target organization or an ancestor. Existing inherited assignments are left unchanged; a new assignment removes descendant assignments for the same group."
+          }
+        },
+        {
+          "name": "Get Reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/reports?organizationId={{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "reports"],
+              "query": [{ "key": "organizationId", "value": "{{organizationId}}" }]
+            }
+          }
+        },
+        {
+          "name": "Generate Report (Database Backed)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/generate?reportId={{reportId}}&organizationId={{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "generate"],
+              "query": [
+                { "key": "reportId", "value": "{{reportId}}" },
+                { "key": "organizationId", "value": "{{organizationId}}" }
+              ]
+            },
+            "description": "Runs synchronously. ZIPs up to 64,000 bytes are stored in report_execution_history.output; larger ZIPs are uploaded to the configured reports S3 bucket under the execution object ID."
+          }
+        },
+        {
+          "name": "Get Scheduled Report Executions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/data?startDate={{reportStartDate}}&endDate={{reportEndDate}}&reportId={{reportId}}&reportGroupId={{reportGroupId}}&organizationId={{organizationId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "data"],
+              "query": [
+                { "key": "startDate", "value": "{{reportStartDate}}" },
+                { "key": "endDate", "value": "{{reportEndDate}}" },
+                { "key": "reportId", "value": "{{reportId}}" },
+                { "key": "reportGroupId", "value": "{{reportGroupId}}" },
+                { "key": "organizationId", "value": "{{organizationId}}" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download Report Output",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/data/{{reportDownloadToken}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "data", "{{reportDownloadToken}}"]
+            },
+            "description": "Public bearer route. Use the JWT portion of a summary execution's url field; the raw internal objectId is not accepted."
+          }
+        },
+        {
+          "name": "Download Report Output as JSON",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/reports/data/{{reportDownloadToken}}?responseFormat=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["reports", "data", "{{reportDownloadToken}}"],
+              "query": [{ "key": "responseFormat", "value": "1" }]
+            },
+            "description": "Verifies the signed report JWT, unpacks the CSV, and returns JSON."
+          }
+        }
+      ]
+    }
+  ]
+}

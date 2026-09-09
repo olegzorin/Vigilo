@@ -1,0 +1,44 @@
+id: 1
+name: NewUsers
+type: summary
+displayName: New Users
+description: The number of new users registered during the specified period, optionally grouped by application
+query: queries/1_NewUsers.sql
+parameters:
+  - name: organizationId
+    type: integer
+    required: false
+    displayName: Organization ID
+  - name: startDate
+    type: datetime
+    required: true
+    displayName: From Date
+    placeholder: Set a date...
+  - name: endDate
+    type: datetime
+    required: true
+    displayName: To Date
+    placeholder: Set a date...
+  - name: period
+    type: integer
+    required: true
+    displayName: Period
+    description: Select period to group results by (1 - Daily, 2 - Weekly, 3 - Monthly, 4 - Annual)
+    placeholder: Select period...
+  - name: byAppName
+    type: boolean
+    required: false
+    displayName: Group By AppName
+fields:
+  - name: date
+    column: t1
+    type: date
+    displayName: Date
+  - name: appName
+    column: s1
+    type: string
+    displayName: App Name
+  - name: count
+    column: n1
+    type: integer
+    displayName: Count

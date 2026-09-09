@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.registry.dao.mapper.SigningKeyMapper">
+    <select id="selectSigningKeys" resultType="dev.olegz.vf.registry.service.encryption.SigningKey" fetchSize="30">
+        SELECT key_id, algorithm, status, encrypted_key, public_key, created_at
+        FROM signing_keys
+        WHERE status IN (1, 2)
+    </select>
+
+    <insert id="insertSigningKey" useGeneratedKeys="true" keyProperty="keyId">
+        INSERT INTO signing_keys (algorithm, status, encrypted_key, public_key, created_at)
+        VALUES (#{algorithm}, #{status}, #{encryptedKey}, #{publicKey}, #{createdAt})
+    </insert>
+
+</mapper>

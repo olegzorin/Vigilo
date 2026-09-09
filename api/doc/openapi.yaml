@@ -1,0 +1,2025 @@
+openapi: 3.1.0
+info:
+  title: Vigilo Framework API
+  description: |
+    REST API for Vigilo Framework: user accounts, organizations, locations,
+    developer teams, and lambda configuration / deployment.
+
+    ## Authentication
+    Every user endpoint except `POST /vf/users/authenticate` and the signed report-download
+    route requires an `API_KEY`
+    request header. The key
+    identifies the calling user; the server resolves the caller and enforces
+    per-object access (e.g. a user may only read/update their own profile; only an
+    admin may create users, and only within their own organization).
+
+    Callers authenticate and obtain an `API_KEY` by posting their credentials to
+    `POST /vf/users/authenticate`, which returns the user profile and a signed,
+    time-limited key.
+
+    Lambda execution, current-state, variable, and alert endpoints instead require the
+    time-limited lambda JWT supplied to the running lambda in the `LAMBDA_API_KEY`
+    header. A lambda may start only its current run, update only its own assignment
+    variables, its assigned location's shared variables, its assigned location,
+    and devices actively assigned to that location. Alert creation is restricted
+    to that same location and its actively assigned devices.
+
+    ## Responses
+    Except for binary/JSON value and signed report-download routes, every `/vf/*` endpoint returns
+    **HTTP 200** with an `application/json` body for both success and failure.
+    Clients must inspect the response envelope (`ActionResponse`) rather than the
+    HTTP status:
+
+    - `resultCode` = `0` (`SUCCESS`) — the call succeeded and any action-specific
+      fields (`user`, `teams`, `lambdas`, …) are populated.
+    - `resultCode` != `0` — the call failed; `resultCodeMessage` / `resultCodeDesc`
+      describe the error and the action-specific fields are absent.
+
+    A successful variable GET returns the raw `application/octet-stream` value
+    with HTTP 200, or HTTP 204 when absent. Validation and authorization failures
+    still use the JSON error envelope with HTTP 200.
+
+    Common `resultCode` values (see `ApiResultCodes`): `0` SUCCESS, `1` FAILURE,
+    `2` WRONG_API_KEY, `6` OBJECT_NOT_FOUND, `7` ACCESS_DENIED, `8` WRONG_PARAM_VALUE,
+    `9` MISSED_PARAMETER, `12` WRONG_USERNAME_PASSWORD, `20` DUPLICATE_USERNAME,
+    `29` METHOD_NOT_FOUND, `45` NOT_AUTHENTICATED, `46` WEAK_PASSWORD.
+  version: 1.0.0
+
+servers:
+  - url: /
+    description: Application root (controllers are mapped under /vf)
+
+tags:
+  - name: Users
+    description: User accounts and authentication
+  - name: Organizations
+    description: Organization profile
+  - name: Locations
+    description: Locations and user assignments
+  - name: Devices
+    description: Organization devices and location assignments
+  - name: Lambda Runtime State
+    description: Location and device current-state updates made by running lambdas
+  - name: Lambda Runtime Execution
+    description: Execution lifecycle calls made by running lambdas
+  - name: Lambda Runtime Variables
+    description: Assignment-private and location-shared binary values used by running lambdas
+  - name: Lambda Runtime Alerts
+    description: Idempotent dangerous-state alerts created by running lambdas
+  - name: Dev Teams
+    description: Developer teams
+  - name: Lambda Configuration
+    description: Lambda definitions and versions
+  - name: Lambda Assignments
+    description: Assignments of lambdas to locations
+  - name: Lambda Deployment
+    description: Lambda code and object uploads
+  - name: Reports
+    description: Report catalog, organization report groups, execution history, and signed output downloads
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /vf/users/{userId}:
+    put:
+      tags: [Users]
+      summary: Update a user's profile
+      description: Read-merge update of the caller's own profile fields.
+      operationId: updateProfile
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateProfileRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResult'
+
+  /vf/users:
+    get:
+      tags: [Users]
+      summary: Search users
+      description: |
+        Returns non-deleted users whose fields contain all supplied filters (case-insensitive).
+        Organization admins can search users in their organization; ordinary users can only
+        receive their own account.
+      operationId: getUsers
+      parameters:
+        - name: firstName
+          in: query
+          schema: { type: string }
+        - name: lastName
+          in: query
+          schema: { type: string }
+        - name: email
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/UsersResult'
+    post:
+      tags: [Users]
+      summary: Create a user
+      description: |
+        Creates a non-admin user. Only an admin may call this, and only for their
+        own organization (`organizationId` must match the caller's organization).
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/UserResult'
+
+  /vf/users/authenticate:
+    post:
+      tags: [Users]
+      summary: Authenticate a user
+      description: |
+        Verifies username/password and returns the user together with a freshly
+        minted, signed `API_KEY` and the user's currently assigned location, if
+        any. Use the key in the `API_KEY` header on all other endpoints. Does not
+        require an API key.
+      operationId: authenticate
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AuthenticateRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/AuthenticationResult'
+
+  /vf/users/{userId}/password:
+    put:
+      tags: [Users]
+      summary: Change a user's password
+      description: Changes the caller's own password.
+      operationId: changePassword
+      parameters:
+        - $ref: '#/components/parameters/UserIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangePasswordRequest' }
+      responses:
+        '200':
+          description: Envelope (empty on success; check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/organizations/{organizationId}:
+    get:
+      tags: [Organizations]
+      summary: Get an organization
+      description: Returns the caller's organization. Callers cannot read another organization.
+      operationId: getOrganization
+      parameters:
+        - $ref: '#/components/parameters/OrganizationIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/OrganizationResult'
+    put:
+      tags: [Organizations]
+      summary: Update an organization
+      description: |
+        Replaces the profile fields of the caller's organization. Only the user
+        designated by the organization as its admin may call this endpoint.
+        IDs, hierarchy, administrator, and lifecycle dates are not editable here.
+      operationId: updateOrganization
+      parameters:
+        - $ref: '#/components/parameters/OrganizationIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateOrganizationRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/OrganizationResult'
+
+  /vf/locations:
+    get:
+      tags: [Locations]
+      summary: List organization locations
+      description: Admin-only. Returns every non-deleted location in the caller's organization.
+      operationId: listLocations
+      responses:
+        '200':
+          description: Visible locations envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationsResponse' }
+    post:
+      tags: [Locations]
+      summary: Create a location
+      description: Admin-only. The location must belong to the caller's organization.
+      operationId: createLocation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLocationRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/LocationResult'
+
+  /vf/locations/{locationId}:
+    get:
+      tags: [Locations]
+      summary: Get a location
+      description: Admin-only. Returns a location in the caller's organization, its current state when available, and all users with active assignments to it.
+      operationId: getLocation
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/LocationDetailResult'
+    put:
+      tags: [Locations]
+      summary: Update a location
+      description: Admin-only. Replaces the location name and address; identity, organization, and lifecycle dates are preserved.
+      operationId: updateLocation
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLocationRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/LocationResult'
+    delete:
+      tags: [Locations]
+      summary: Delete a location
+      description: Admin-only. Permanently marks the location deleted only when it has no active user or device assignments.
+      operationId: deleteLocation
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/locations/{locationId}/current-state:
+    put:
+      tags: [Lambda Runtime State]
+      summary: Update a location's current state
+      description: |
+        Stores the current state for the lambda's assigned location. The server sets
+        `stateDate` to the receipt time. A lambda cannot update another location.
+      operationId: updateLocationCurrentState
+      security:
+        - LambdaKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLocationCurrentStateRequest' }
+      responses:
+        '200':
+          description: Updated location current-state envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationCurrentStateResponse' }
+
+  /vf/locations/{locationId}/users/{userId}:
+    post:
+      tags: [Locations]
+      summary: Assign a user to a location
+      description: Admin-only. The user and location must belong to the caller's organization, and the user must have no other active location assignment.
+      operationId: assignUserToLocation
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Created assignment envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/UserLocationResponse' }
+    delete:
+      tags: [Locations]
+      summary: Cancel a user's location assignment
+      description: Admin-only. Closes the active assignment by setting its endDate; assignment history is retained.
+      operationId: cancelUserLocationAssignment
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/devices:
+    get:
+      tags: [Devices]
+      summary: List devices
+      description: |
+        Organization admins receive devices in their organization. Ordinary users
+        receive only devices actively assigned to their current location. Every
+        device includes compact active-assignment metadata, if any. Assignment
+        location details and current state are omitted from list responses.
+      operationId: listDevices
+      parameters:
+        - name: typeId
+          in: query
+          required: false
+          description: Restrict results to this device type.
+          schema: { type: integer, format: int32, minimum: 1 }
+        - name: locationId
+          in: query
+          required: false
+          description: |
+            Restrict results to devices actively assigned to this location.
+            Ordinary users may specify only their current location.
+          schema: { type: integer, format: int32, minimum: 1 }
+      responses:
+        '200':
+          $ref: '#/components/responses/DevicesResult'
+    post:
+      tags: [Devices]
+      summary: Create a device
+      description: Admin-only. Creates a device in the caller's organization.
+      operationId: createDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateDeviceRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/DeviceResult'
+
+  /vf/devices/{deviceUuid}:
+    get:
+      tags: [Devices]
+      summary: Get a device
+      description: |
+        Organization admins may retrieve any device in their organization.
+        Ordinary users may retrieve a device only while it is actively assigned
+        to their current location. The response includes the device's current
+        state and its measurement and receipt timestamps, when available.
+      operationId: getDevice
+      parameters:
+        - $ref: '#/components/parameters/DeviceUuidPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/DeviceDetailResult'
+    put:
+      tags: [Devices]
+      summary: Update a device
+      description: Admin-only. Updates a device in the caller's organization.
+      operationId: updateDevice
+      parameters:
+        - $ref: '#/components/parameters/DeviceUuidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateDeviceRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/DeviceResult'
+
+  /vf/devices/{deviceUuid}/current-state:
+    put:
+      tags: [Lambda Runtime State]
+      summary: Update a device's current state
+      description: |
+        Stores the current state for a device actively assigned to the lambda's
+        location. `measuredAt` is supplied by the lambda; the server sets `receivedAt`.
+      operationId: updateDeviceCurrentState
+      security:
+        - LambdaKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/DeviceUuidPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateDeviceCurrentStateRequest' }
+      responses:
+        '200':
+          description: Updated device current-state envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceCurrentStateResponse' }
+
+  /vf/locations/{locationId}/devices/{deviceUuid}:
+    post:
+      tags: [Devices]
+      summary: Assign a device to a location
+      description: |
+        Admin-only. The device and location must belong to the caller's
+        organization, and the device must have no other active location assignment.
+      operationId: assignDeviceToLocation
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+        - $ref: '#/components/parameters/DeviceUuidPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/DeviceLocationAssignmentResult'
+    delete:
+      tags: [Devices]
+      summary: Cancel a device location assignment
+      description: Admin-only. Closes the active assignment and retains its history.
+      operationId: cancelDeviceLocationAssignment
+      parameters:
+        - $ref: '#/components/parameters/LocationIdPath'
+        - $ref: '#/components/parameters/DeviceUuidPath'
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/start:
+    post:
+      tags: [Lambda Runtime Execution]
+      summary: Mark a lambda run as started
+      description: |
+        A running lambda must call this endpoint before processing its input. `invocationToken`
+        is the invocation token supplied in that input. The lambda may continue only
+        when `resultCode` is `0`; a stale, duplicate, or otherwise mismatched launch
+        is rejected with `ACCESS_DENIED`.
+
+        For ASYNC invocations, pass the Lambda context's `aws_request_id` and
+        `log_stream_name` values so the server can correlate delayed completion
+        status with CloudWatch Logs. These values are ignored for DEFAULT-lane runs.
+      operationId: startLambdaRun
+      security:
+        - LambdaKeyAuth: []
+      parameters:
+        - name: invocationToken
+          in: query
+          required: true
+          description: Unique invocation token supplied in the lambda input.
+          schema: { type: integer, format: int64, minimum: 1 }
+        - name: awsRequestId
+          in: query
+          required: false
+          description: Lambda context `aws_request_id`.
+          schema: { type: string }
+        - name: logStreamName
+          in: query
+          required: false
+          description: Lambda context `log_stream_name`.
+          schema: { type: string }
+      responses:
+        '200':
+          description: Empty success or error envelope; continue only when resultCode is 0.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/variables/{name}:
+    get:
+      tags: [Lambda Runtime Variables]
+      summary: Get a lambda variable
+      description: |
+        Returns an arbitrary binary value. By default the variable belongs to the
+        authenticated lambda assignment. With `shared=true`, the variable belongs to
+        the lambda's assigned location and is shared by that location's lambdas. Returns
+        HTTP 204 when the variable is absent or empty. A reset invalidates the
+        assignment-private variable generation, but does not affect shared variables.
+      operationId: getLambdaVariable
+      security:
+        - LambdaKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LambdaVariableNamePath'
+        - $ref: '#/components/parameters/SharedVariableQuery'
+      responses:
+        '200':
+          description: Stored binary value, or a JSON error envelope.
+          content:
+            application/octet-stream:
+              schema: { type: string, format: binary }
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+        '204':
+          description: The variable is absent or empty.
+    put:
+      tags: [Lambda Runtime Variables]
+      summary: Store a lambda variable
+      description: |
+        Stores an arbitrary binary value in assignment-private scope, or in the
+        lambda's location scope when `shared=true`. Assignment-private writes from a
+        lambda key invalidated by a reset are rejected.
+      operationId: putLambdaVariable
+      security:
+        - LambdaKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LambdaVariableNamePath'
+        - $ref: '#/components/parameters/SharedVariableQuery'
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+    delete:
+      tags: [Lambda Runtime Variables]
+      summary: Delete a lambda variable
+      description: |
+        Deletes the assignment-private variable, or the lambda's location-shared
+        variable when `shared=true`. Deleting an absent variable succeeds.
+      operationId: deleteLambdaVariable
+      security:
+        - LambdaKeyAuth: []
+      parameters:
+        - $ref: '#/components/parameters/LambdaVariableNamePath'
+        - $ref: '#/components/parameters/SharedVariableQuery'
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/alerts:
+    post:
+      tags: [Lambda Runtime Alerts]
+      summary: Create a dangerous-state alert
+      description: |
+        Creates an OPEN alert for the lambda's assigned location. Every location and
+        device referenced by a reason is authorized against the `LAMBDA_API_KEY`.
+        Lambda, assignment, version, and organization identity are derived by the
+        server rather than trusted from the request.
+
+        `idempotencyKey` is globally unique. Repeating an identical request returns
+        the existing alert with `created=false`; reusing the key for a different
+        payload is rejected.
+      operationId: createLambdaAlert
+      security:
+        - LambdaKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLambdaAlertRequest' }
+      responses:
+        '200':
+          description: Created or previously created alert envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LambdaAlertResponse' }
+
+  /vf/teams:
+    get:
+      tags: [Dev Teams]
+      summary: List developer teams
+      description: Lists dev teams, optionally filtered to those a given user belongs to.
+      operationId: listDevTeams
+      parameters:
+        - name: userId
+          in: query
+          required: false
+          description: Restrict results to teams this user is a member of.
+          schema: { type: integer, format: int32 }
+      responses:
+        '200':
+          description: Teams envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DevTeamsResponse' }
+    post:
+      tags: [Dev Teams]
+      summary: Create a developer team
+      description: Creates a team owned by the caller. The owner is added as an active team member automatically.
+      operationId: createDevTeam
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateDevTeamRequest' }
+      responses:
+        '200':
+          description: Created team envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DevTeamResponse' }
+
+  /vf/teams/{devTeamId}:
+    get:
+      tags: [Dev Teams]
+      summary: Get a developer team
+      operationId: getDevTeam
+      parameters:
+        - name: devTeamId
+          in: path
+          required: true
+          schema: { type: integer, format: int32 }
+      responses:
+        '200':
+          description: Team envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DevTeamResponse' }
+
+  /vf/teams/{devTeamId}/users/{userId}:
+    post:
+      tags: [Dev Teams]
+      summary: Add a developer team member
+      description: Owner-only. Adds the user as an active member of the team.
+      operationId: addDevTeamMember
+      parameters:
+        - $ref: '#/components/parameters/DevTeamIdPath'
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+    delete:
+      tags: [Dev Teams]
+      summary: Remove a developer team member
+      description: Owner-only. The owner cannot remove themselves from the team.
+      operationId: deleteDevTeamMember
+      parameters:
+        - $ref: '#/components/parameters/DevTeamIdPath'
+        - $ref: '#/components/parameters/UserIdPath'
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/lambda-assignments:
+    get:
+      tags: [Lambda Assignments]
+      summary: List lambda assignments
+      description: |
+        Lists assignments visible to the caller. Supply exactly one filter: `lambdaId`
+        or `locationId`.
+      operationId: getLambdaAssignments
+      parameters:
+        - name: lambdaId
+          in: query
+          required: false
+          schema: { type: integer, format: int32, minimum: 1 }
+        - name: locationId
+          in: query
+          required: false
+          schema: { type: integer, format: int32, minimum: 1 }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaAssignmentResult'
+    post:
+      tags: [Lambda Assignments]
+      summary: Create a lambda assignment
+      operationId: createLambdaAssignment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateLambdaAssignmentRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaAssignmentResult'
+    delete:
+      tags: [Lambda Assignments]
+      summary: Cancel lambda assignments by lambda or location
+      description: Supply exactly one filter, `lambdaId` or `locationId`, to cancel matching assignments.
+      operationId: cancelLambdaAssignments
+      parameters:
+        - name: lambdaId
+          in: query
+          required: false
+          schema: { type: integer, format: int32, minimum: 1 }
+        - name: locationId
+          in: query
+          required: false
+          schema: { type: integer, format: int32, minimum: 1 }
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/lambda-assignments/{lambdaAssignmentId}:
+    get:
+      tags: [Lambda Assignments]
+      summary: Get a lambda assignment
+      operationId: getLambdaAssignment
+      parameters:
+        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaAssignmentResult'
+    put:
+      tags: [Lambda Assignments]
+      summary: Enable or disable a lambda assignment
+      operationId: updateLambdaAssignment
+      parameters:
+        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/UpdateLambdaAssignmentRequest' }
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+    delete:
+      tags: [Lambda Assignments]
+      summary: Cancel a lambda assignment
+      operationId: cancelLambdaAssignment
+      parameters:
+        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ActionResponse' }
+
+  /vf/lambda-assignments/{lambdaAssignmentId}/lambda-api-key:
+    post:
+      tags: [Lambda Assignments]
+      summary: Generate a lambda API key for a lambda assignment
+      description: |
+        Generates a time-limited key for manual lambda API calls. The caller must be
+        the assignment location's assigned user or the location organization's admin.
+        Send the returned key in the `LAMBDA_API_KEY` header.
+      operationId: generateLambdaAssignmentApiKey
+      parameters:
+        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaAssignmentApiKeyResult'
+
+  /vf/lambdas:
+    get:
+      tags: [Lambda Configuration]
+      summary: List lambdas
+      description: Returns lambdas visible to the caller, optionally filtered by developer team.
+      operationId: getLambdas
+      parameters:
+        - name: devTeamId
+          in: query
+          required: false
+          description: Developer team ID to filter by.
+          schema: { type: integer, format: int32 }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+    post:
+      tags: [Lambda Configuration]
+      summary: Create a lambda
+      operationId: postLambda
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LambdaCreateRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+    put:
+      tags: [Lambda Configuration]
+      summary: Update a lambda
+      operationId: putLambda
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LambdaUpdateRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+
+  /vf/lambdas/versions:
+    get:
+      tags: [Lambda Configuration]
+      summary: List lambda versions
+      operationId: getLambdaVersions
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+        - name: status
+          in: query
+          required: false
+          description: One or more version statuses to filter by.
+          schema:
+            type: array
+            items: { type: string, enum: [DRAFT, UNDER_TEST, PRODUCTION, DISCARDED, FALLBACK, ARCHIVED] }
+        - name: version
+          in: query
+          required: false
+          schema: { type: string }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+    put:
+      tags: [Lambda Configuration]
+      summary: Create or replace a lambda version configuration
+      operationId: putLambdaVersion
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PutVersionRequest' }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+    delete:
+      tags: [Lambda Configuration]
+      summary: Delete active lambda versions
+      operationId: deleteActiveLambdaVersions
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+
+  /vf/lambdas/versions/promote:
+    put:
+      tags: [Lambda Configuration]
+      summary: Promote the test version to production
+      description: Promotes the lambda's version under test to production and retains the previous production version as the rollback fallback.
+      operationId: promoteTestVersionToProduction
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+
+  /vf/lambdas/versions/discard:
+    put:
+      tags: [Lambda Configuration]
+      summary: Discard the test version
+      description: Discards the lambda's development version currently under test.
+      operationId: discardTestVersion
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+
+  /vf/lambdas/versions/rollback:
+    put:
+      tags: [Lambda Configuration]
+      summary: Roll back the production version
+      description: Archives the current production version and restores the fallback version to production.
+      operationId: rollbackProductionVersion
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaConfigResult'
+
+  /vf/lambdas/code-uploads:
+    post:
+      tags: [Lambda Deployment]
+      summary: Upload lambda code archive
+      description: |
+        Uploads a lambda code archive (ZIP or TAR). Code file names must end with
+        `.py`, `.pyc`, `.json`, or `.js`. Returns a `requestId` (upload id) to poll
+        with `GET /vf/lambdas/code-uploads/{uploadId}`.
+      operationId: postLambdaCode
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+        - name: buildTarget
+          in: query
+          required: true
+          description: |
+            Python version and processor architecture in
+            `<python-version>-<architecture>` form. Must be one of the build targets
+            returned by `GET /vf/lambdas/python-image-tags`.
+          schema:
+            type: string
+            pattern: '^\d+\.\d+-(arm64|x86_64)$'
+            example: 3.14-arm64
+      requestBody:
+        required: true
+        content:
+          application/zip:
+            schema: { type: string, format: binary }
+          application/x-tar:
+            schema: { type: string, format: binary }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaDeployResult'
+
+  /vf/lambdas/python-image-tags:
+    get:
+      tags: [Lambda Deployment]
+      summary: List available Python image tags
+      description: Returns available AWS Lambda Python base-image tags including architecture.
+      operationId: getPythonImageTags
+      responses:
+        '200':
+          $ref: '#/components/responses/PythonImageTagsResult'
+
+  /vf/lambdas/code-uploads/{uploadId}:
+    get:
+      tags: [Lambda Deployment]
+      summary: Get lambda code upload status
+      description: |
+        Returns the current upload status. Poll while the status is `CREATED` or
+        `IN_PROGRESS`; `COMPLETED` and `FAILED` are terminal statuses.
+      operationId: getLambdaCodeUploadResult
+      parameters:
+        - name: lambdaId
+          in: query
+          required: true
+          schema: { type: integer, format: int32, minimum: 1 }
+        - name: uploadId
+          in: path
+          required: true
+          schema: { type: integer, format: int32 }
+      responses:
+        '200':
+          $ref: '#/components/responses/LambdaDeployResult'
+
+  /vf/reports/groups/{organizationId}:
+    get:
+      tags: [Reports]
+      summary: List report groups assigned to an organization
+      operationId: getReportGroups
+      parameters:
+        - $ref: '#/components/parameters/OrganizationIdPath'
+        - { name: analytic, in: query, schema: { type: boolean } }
+        - { name: all, in: query, schema: { type: boolean, default: true } }
+      responses:
+        '200': { $ref: '#/components/responses/ReportsResult' }
+    put:
+      tags: [Reports]
+      summary: Assign a report group to an organization
+      description: |
+        Requires the caller to be the administrator of the target organization or one of its ancestors.
+        If the organization already inherits the report group from itself or an ancestor, the operation
+        succeeds without making changes. Otherwise, the direct assignment is created and any direct
+        assignments of the same report group to descendant organizations are removed.
+      operationId: putReportGroupOrganization
+      parameters:
+        - $ref: '#/components/parameters/OrganizationIdPath'
+        - { name: reportGroupId, in: query, required: true, schema: { type: integer, format: int32 } }
+      responses:
+        '200': { $ref: '#/components/responses/ReportsResult' }
+    delete:
+      tags: [Reports]
+      summary: Remove a report-group assignment
+      operationId: deleteReportGroupOrganization
+      parameters:
+        - $ref: '#/components/parameters/OrganizationIdPath'
+        - { name: reportGroupId, in: query, required: true, schema: { type: integer, format: int32 } }
+      responses:
+        '200': { $ref: '#/components/responses/ReportsResult' }
+
+  /vf/reports/reports:
+    get:
+      tags: [Reports]
+      summary: List available reports
+      operationId: getReports
+      parameters:
+        - { name: reportId, in: query, schema: { type: integer, format: int32 } }
+        - { name: organizationId, in: query, schema: { type: integer, format: int32 } }
+        - { name: reportGroupId, in: query, schema: { type: integer, format: int32 } }
+        - { name: analytic, in: query, schema: { type: boolean } }
+      responses:
+        '200': { $ref: '#/components/responses/ReportsResult' }
+
+  /vf/reports/data:
+    get:
+      tags: [Reports]
+      summary: List scheduled report executions
+      description: Summary executions expose one-day signed download URLs. Analytic execution data is returned inline.
+      operationId: getReportExecutions
+      parameters:
+        - { name: startDate, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: endDate, in: query, required: true, schema: { type: string, format: date-time } }
+        - { name: reportId, in: query, required: true, schema: { type: integer, format: int32 } }
+        - { name: reportGroupId, in: query, required: true, schema: { type: integer, format: int32 } }
+        - { name: organizationId, in: query, schema: { type: integer, format: int32 } }
+      responses:
+        '200': { $ref: '#/components/responses/ReportsResult' }
+
+  /vf/reports/generate:
+    get:
+      tags: [Reports]
+      summary: Generate an on-demand report into database-backed history
+      description: Report-specific query parameters are accepted in addition to the parameters documented here. Compressed output up to 64,000 bytes is stored in execution history; larger ZIPs are stored in the configured reports S3 bucket under the execution object ID.
+      operationId: generateReport
+      parameters:
+        - { name: reportId, in: query, required: true, schema: { type: integer, format: int32 } }
+        - { name: organizationId, in: query, schema: { type: integer, format: int32 } }
+      responses:
+        '200': { $ref: '#/components/responses/ReportsResult' }
+
+  /vf/reports/data/{token}:
+    get:
+      tags: [Reports]
+      summary: Download report output using a signed one-day bearer token
+      description: Verifies the JWT and resolves its internal `oid` claim. Reads the database BLOB first and then the configured reports S3 bucket. No API key is required because the signed URL is the bearer credential.
+      operationId: getReportData
+      security: []
+      parameters:
+        - { name: token, in: path, required: true, schema: { type: string }, description: Signed report JWT returned in an execution URL. }
+        - { name: responseFormat, in: query, schema: { type: integer, enum: [0, 1], default: 0 }, description: Use 1 to convert the ZIP's CSV content to JSON. }
+      responses:
+        '200':
+          description: ZIP containing CSV, or JSON when `responseFormat=1`.
+          content:
+            application/zip:
+              schema: { type: string, format: binary }
+            application/json:
+              schema: { type: array, items: { type: object, additionalProperties: true } }
+        '204': { description: The execution exists but no output is available. }
+        '207':
+          description: The report execution failed; body contains its error message.
+          content:
+            text/plain: { schema: { type: string } }
+        '401': { description: The report JWT is invalid or expired. }
+        '404': { description: No execution exists for the token's object ID. }
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: API_KEY
+      description: Per-user API key identifying the caller.
+    LambdaKeyAuth:
+      type: apiKey
+      in: header
+      name: LAMBDA_API_KEY
+      description: Time-limited JWT identifying the running lambda assignment.
+
+  parameters:
+    UserIdPath:
+      name: userId
+      in: path
+      required: true
+      schema: { type: integer, format: int32 }
+    OrganizationIdPath:
+      name: organizationId
+      in: path
+      required: true
+      schema: { type: integer, format: int32 }
+    LocationIdPath:
+      name: locationId
+      in: path
+      required: true
+      schema: { type: integer, format: int32 }
+    DeviceUuidPath:
+      name: deviceUuid
+      in: path
+      required: true
+      schema: { type: string }
+    LambdaVariableNamePath:
+      name: name
+      in: path
+      required: true
+      description: Variable name, from 1 to 150 characters.
+      schema: { type: string, minLength: 1, maxLength: 150 }
+    SharedVariableQuery:
+      name: shared
+      in: query
+      required: false
+      description: Use the lambda's location-shared scope instead of its assignment-private scope.
+      schema: { type: boolean, default: false }
+    DevTeamIdPath:
+      name: devTeamId
+      in: path
+      required: true
+      schema: { type: integer, format: int32 }
+    LambdaAssignmentIdPath:
+      name: lambdaAssignmentId
+      in: path
+      required: true
+      schema: { type: integer, format: int32, minimum: 1 }
+
+  responses:
+    ReportsResult:
+      description: Report response envelope. Fields are populated according to the operation.
+      content:
+        application/json:
+          schema:
+            type: object
+            allOf:
+              - $ref: '#/components/schemas/ActionResponse'
+              - type: object
+                properties:
+                  groups: { type: array, items: { $ref: '#/components/schemas/ApiReportGroup' } }
+                  reports: { type: array, items: { $ref: '#/components/schemas/ApiReport' } }
+                  executions: { type: array, items: { $ref: '#/components/schemas/ApiReportExecution' } }
+                  execution: { $ref: '#/components/schemas/ApiReportExecution' }
+    AuthenticationResult:
+      description: |
+        Authentication envelope, always HTTP 200. On success `resultCode` is 0
+        and `user` / `apiKey` are populated; `location` contains the user's active
+        assigned location when present. On failure (e.g. wrong credentials)
+        `resultCode` is non-zero and these fields are absent.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/AuthenticationResponse' }
+    UserResult:
+      description: |
+        User envelope, always HTTP 200. On success `resultCode` is 0 and `user` is
+        populated; on failure `resultCode` is non-zero and `user` is absent.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/UserResponse' }
+    UsersResult:
+      description: |
+        User-list envelope, always HTTP 200. On success `resultCode` is 0 and `users`
+        contains the matching accounts.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/UsersResponse' }
+    OrganizationResult:
+      description: |
+        Organization envelope, always HTTP 200. On success `resultCode` is 0 and
+        `organization` is populated; on failure `resultCode` is non-zero.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/OrganizationResponse' }
+    LocationResult:
+      description: |
+        Location envelope, always HTTP 200. On success `resultCode` is 0 and
+        `location` is populated; on failure `resultCode` is non-zero.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/LocationResponse' }
+    LocationDetailResult:
+      description: |
+        Location-detail envelope, always HTTP 200. On success `resultCode` is 0,
+        `location` is populated with its current state when available, and `users`
+        contains all actively assigned users.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/LocationDetailResponse' }
+    DeviceResult:
+      description: |
+        Device envelope, always HTTP 200. On success `resultCode` is 0 and
+        `device` contains the organization device and its active location.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/DeviceResponse' }
+    DeviceDetailResult:
+      description: |
+        Device-detail envelope, always HTTP 200. On success `resultCode` is 0 and
+        `device` includes its current state when one has been received.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/DeviceDetailResponse' }
+    DevicesResult:
+      description: |
+        Device-list envelope, always HTTP 200. On success `resultCode` is 0 and
+        `devices` contains the visible matching devices.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/DevicesResponse' }
+    DeviceLocationAssignmentResult:
+      description: |
+        Device-location assignment envelope, always HTTP 200. On success
+        `assignment` contains the newly opened assignment.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/DeviceLocationAssignmentResponse' }
+    LambdaConfigResult:
+      description: |
+        Lambda-configuration envelope, always HTTP 200. On success `resultCode` is 0 and
+        the relevant fields (`lambdas`, `versions`, `lambdaVersionId`, …) are populated; on
+        failure `resultCode` is non-zero.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/LambdaConfigResponse' }
+    LambdaDeployResult:
+      description: |
+        Lambda-deployment envelope, always HTTP 200. On success `resultCode` is 0 and
+        `requestId` / `result` are populated as applicable; on failure `resultCode`
+        is non-zero.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/LambdaDeployResponse' }
+    PythonImageTagsResult:
+      description: |
+        Python-image-tag envelope, always HTTP 200. On success `resultCode` is 0 and
+        `result` contains the available tags including architecture.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/PythonImageTagsResponse' }
+    LambdaAssignmentResult:
+      description: |
+        Lambda-assignment envelope, always HTTP 200. Depending on the operation,
+        `lambdaAssignmentId`, `assignment`, or `assignments` is populated on success.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/LambdaAssignmentResponse' }
+    LambdaAssignmentApiKeyResult:
+      description: |
+        Lambda-key envelope, always HTTP 200. On success `lambdaApiKey` contains
+        the time-limited JWT and `expiry` is its expiration time.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/LambdaAssignmentApiKeyResponse' }
+
+  schemas:
+    ApiReportGroup:
+      type: object
+      properties:
+        reportGroupId: { type: integer, format: int32 }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        analytic: { type: boolean }
+    ApiReport:
+      type: object
+      properties:
+        reportId: { type: integer, format: int32 }
+        name: { type: string }
+        displayName: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+        analytic: { type: boolean }
+        parameters:
+          type: array
+          items: { type: object, additionalProperties: true }
+    ApiReportExecution:
+      type: object
+      properties:
+        reportId: { type: integer, format: int32 }
+        reportName: { type: string, nullable: true }
+        scheduleId: { type: integer, format: int32, nullable: true }
+        executionDate: { type: string, format: date-time }
+        scheduleDate: { type: string, format: date-time, nullable: true }
+        organizationId: { type: integer, format: int32, nullable: true }
+        executionTime: { type: integer, format: int32 }
+        rowCount: { type: integer, format: int32 }
+        errorMessage: { type: string, nullable: true }
+        url: { type: string, format: uri, nullable: true, description: One-day signed ZIP download URL for a successful summary execution. }
+        urlJson: { type: string, format: uri, nullable: true, description: One-day signed JSON download URL for a successful summary execution. }
+        data:
+          type: array
+          nullable: true
+          description: Inline analytic execution output; summary executions use signed URLs instead.
+          items:
+            type: object
+            properties:
+              id: {}
+              value: {}
+    ActionResponse:
+      type: object
+      description: Common response envelope returned by every endpoint (always HTTP 200).
+      properties:
+        resultCode:
+          type: integer
+          format: int32
+          description: 0 = success; non-zero is an ApiResultCodes value.
+        resultCodeMessage:
+          type: string
+          nullable: true
+        resultCodeDesc:
+          type: string
+          readOnly: true
+          description: Human-readable description of resultCode.
+        collectionTotalSize:
+          type: integer
+          format: int32
+
+    UserResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            user: { $ref: '#/components/schemas/ApiUser' }
+
+    UsersResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            users:
+              type: array
+              items: { $ref: '#/components/schemas/ApiUser' }
+
+    OrganizationResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            organization: { $ref: '#/components/schemas/ApiOrganization' }
+
+    ApiOrganization:
+      type: object
+      properties:
+        organizationId: { type: integer, format: int32 }
+        organizationName: { type: string }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: Any non-null value means the organization is permanently deleted.
+        parentId: { type: integer, format: int32, nullable: true }
+        adminUserId: { type: integer, format: int32, nullable: true }
+        address: { $ref: '#/components/schemas/ApiAddress' }
+
+    ApiAddress:
+      type: object
+      properties:
+        addrStreet1: { type: string, nullable: true }
+        addrStreet2: { type: string, nullable: true }
+        city: { type: string, nullable: true }
+        state: { type: string, nullable: true }
+        countryCode: { type: string, nullable: true }
+        postalCode: { type: string, nullable: true }
+        timezone: { type: string, nullable: true }
+
+    UpdateOrganizationRequest:
+      type: object
+      required: [organizationName, address]
+      properties:
+        organizationName: { type: string }
+        address: { $ref: '#/components/schemas/ApiAddress' }
+
+    LocationsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            locations:
+              type: array
+              items: { $ref: '#/components/schemas/ApiLocation' }
+
+    LocationResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            location: { $ref: '#/components/schemas/ApiLocation' }
+
+    LocationDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            location: { $ref: '#/components/schemas/ApiLocationDetails' }
+            users:
+              type: array
+              items: { $ref: '#/components/schemas/ApiUser' }
+
+    UserLocationResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            assignment: { $ref: '#/components/schemas/ApiUserLocation' }
+
+    ApiLocation:
+      type: object
+      properties:
+        locationId: { type: integer, format: int32 }
+        locationName: { type: string }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: Any non-null value means the location is permanently deleted.
+        organizationId: { type: integer, format: int32 }
+        address: { $ref: '#/components/schemas/ApiAddress' }
+
+    ApiLocationDetails:
+      allOf:
+        - $ref: '#/components/schemas/ApiLocation'
+        - type: object
+          properties:
+            currentState:
+              description: Current location state, or null when no state has been recorded.
+              allOf:
+                - $ref: '#/components/schemas/ApiLocationCurrentState'
+              nullable: true
+
+    ApiLocationCurrentState:
+      type: object
+      required: [state, stateDate]
+      properties:
+        state: { type: string }
+        stateDate: { type: string, format: date-time }
+
+    UpdateLocationCurrentStateRequest:
+      type: object
+      required: [state]
+      properties:
+        state:
+          type: string
+          minLength: 1
+          maxLength: 50
+
+    LocationCurrentStateResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            currentState: { $ref: '#/components/schemas/ApiLocationCurrentState' }
+
+    ApiUserLocation:
+      type: object
+      properties:
+        userId: { type: integer, format: int32 }
+        locationId: { type: integer, format: int32 }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time, nullable: true }
+
+    DeviceResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            device: { $ref: '#/components/schemas/ApiDevice' }
+
+    DeviceDetailResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            device: { $ref: '#/components/schemas/ApiDeviceDetails' }
+
+    DevicesResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            devices:
+              type: array
+              items: { $ref: '#/components/schemas/ApiDevice' }
+
+    DeviceLocationAssignmentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            assignment: { $ref: '#/components/schemas/ApiDeviceLocationAssignment' }
+
+    ApiDevice:
+      type: object
+      properties:
+        deviceUuid: { type: string }
+        organizationId: { type: integer, format: int32 }
+        typeId: { type: integer, format: int32 }
+        deviceName: { type: string, nullable: true }
+        serialNumber: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        vendor: { type: string, nullable: true }
+        manufacturer: { type: string, nullable: true }
+        assignment:
+          description: The device's active location assignment, or null when unassigned.
+          allOf:
+            - $ref: '#/components/schemas/ApiDeviceAssignment'
+          nullable: true
+
+    ApiDeviceDetails:
+      allOf:
+        - $ref: '#/components/schemas/ApiDevice'
+        - type: object
+          properties:
+            assignment:
+              description: Active assignment with location details, or null when unassigned.
+              allOf:
+                - $ref: '#/components/schemas/ApiDeviceLocation'
+              nullable: true
+            currentState:
+              description: Latest received device state, or null when no state has been received.
+              allOf:
+                - $ref: '#/components/schemas/ApiDeviceCurrentState'
+              nullable: true
+
+    ApiDeviceCurrentState:
+      type: object
+      required: [state, measuredAt, receivedAt]
+      properties:
+        state:
+          type: object
+          additionalProperties: true
+        measuredAt:
+          type: string
+          format: date-time
+        receivedAt:
+          type: string
+          format: date-time
+
+    UpdateDeviceCurrentStateRequest:
+      type: object
+      required: [state, measuredAt]
+      properties:
+        state:
+          type: object
+          additionalProperties: true
+        measuredAt:
+          type: string
+          format: date-time
+
+    DeviceCurrentStateResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            currentState: { $ref: '#/components/schemas/ApiDeviceCurrentState' }
+
+    CreateLambdaAlertRequest:
+      type: object
+      required: [idempotencyKey, ruleId, severity, locationId, occurredAt, runId, eventKey, reasons]
+      properties:
+        idempotencyKey:
+          type: string
+          minLength: 1
+          maxLength: 250
+          description: Stable key for one assignment, event, and rule evaluation.
+        ruleId: { type: string, minLength: 1, maxLength: 100 }
+        severity: { type: string, enum: [WARNING, CRITICAL] }
+        locationId: { type: integer, format: int32, minimum: 1 }
+        occurredAt:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Event time in Unix epoch milliseconds.
+        runId: { type: integer, format: int64, minimum: 1 }
+        eventKey: { type: string, minLength: 1, maxLength: 100 }
+        reasons:
+          type: array
+          minItems: 1
+          maxItems: 20
+          items: { $ref: '#/components/schemas/LambdaAlertReason' }
+
+    LambdaAlertReason:
+      type: object
+      required: [resourceType, resourceId, field]
+      properties:
+        resourceType: { type: string, enum: [LOCATION, DEVICE] }
+        resourceId: { type: string, minLength: 1, maxLength: 150 }
+        field: { type: string, minLength: 1, maxLength: 100 }
+        previousValue: {}
+        newValue: {}
+
+    LambdaAlertResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            alertId: { type: string, format: uuid }
+            status: { type: string, enum: [OPEN] }
+            created:
+              type: boolean
+              description: False when an identical idempotent request already created the alert.
+
+    ApiDeviceAssignment:
+      type: object
+      properties:
+        locationId: { type: integer, format: int32 }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time, nullable: true }
+
+    ApiDeviceLocation:
+      allOf:
+        - $ref: '#/components/schemas/ApiDeviceAssignment'
+        - type: object
+          properties:
+            location: { $ref: '#/components/schemas/ApiLocation' }
+
+    ApiDeviceLocationAssignment:
+      allOf:
+        - $ref: '#/components/schemas/ApiDeviceLocation'
+        - type: object
+          properties:
+            deviceUuid: { type: string }
+
+    CreateDeviceRequest:
+      type: object
+      required: [deviceUuid, organizationId, typeId]
+      properties:
+        deviceUuid: { type: string }
+        organizationId: { type: integer, format: int32, minimum: 1 }
+        typeId: { type: integer, format: int32, minimum: 1 }
+        deviceName: { type: string, nullable: true }
+        serialNumber: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        vendor: { type: string, nullable: true }
+        manufacturer: { type: string, nullable: true }
+
+    UpdateDeviceRequest:
+      type: object
+      required: [typeId]
+      properties:
+        typeId: { type: integer, format: int32, minimum: 1 }
+        deviceName: { type: string, nullable: true }
+        serialNumber: { type: string, nullable: true }
+        model: { type: string, nullable: true }
+        vendor: { type: string, nullable: true }
+        manufacturer: { type: string, nullable: true }
+
+    CreateLocationRequest:
+      type: object
+      required: [locationName, organizationId, address]
+      properties:
+        locationName: { type: string }
+        organizationId: { type: integer, format: int32, minimum: 1 }
+        address: { $ref: '#/components/schemas/ApiAddress' }
+
+    UpdateLocationRequest:
+      type: object
+      required: [locationName, address]
+      properties:
+        locationName: { type: string }
+        address: { $ref: '#/components/schemas/ApiAddress' }
+
+    ApiUser:
+      type: object
+      description: API view of a user. Never includes the password hash.
+      properties:
+        userId: { type: integer, format: int32 }
+        username: { type: string }
+        firstName: { type: string, nullable: true }
+        lastName: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        organizationId: { type: integer, format: int32 }
+        createdAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: Any non-null value means the user is permanently deleted.
+
+    CreateUserRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+        firstName: { type: string, nullable: true }
+        lastName: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        organizationId: { type: integer, format: int32 }
+
+    AuthenticateRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username: { type: string }
+        password: { type: string }
+
+    AuthenticationResponse:
+      allOf:
+        - $ref: '#/components/schemas/UserResponse'
+        - type: object
+          properties:
+            apiKey:
+              type: string
+              description: Signed, time-limited key to send in the API_KEY header.
+            location:
+              allOf:
+                - $ref: '#/components/schemas/ApiLocation'
+              description: The user's active assigned location. Absent when unassigned.
+
+    UpdateProfileRequest:
+      type: object
+      properties:
+        firstName: { type: string, nullable: true }
+        lastName: { type: string, nullable: true }
+        email: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+
+    ChangePasswordRequest:
+      type: object
+      required: [password]
+      properties:
+        password: { type: string }
+
+    DevTeamsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            teams:
+              type: array
+              items: { $ref: '#/components/schemas/ApiDevTeamSummary' }
+
+    DevTeamResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            team: { $ref: '#/components/schemas/ApiDevTeamDetails' }
+
+    CreateDevTeamRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        description: { type: string, maxLength: 1000, nullable: true }
+
+    ApiDevTeamSummary:
+      type: object
+      description: Team as returned by the list endpoint — scalar fields and member/lambda counts, without the nested collections.
+      properties:
+        devTeamId: { type: integer, format: int32 }
+        ownerUserId: { type: integer, format: int32 }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        membersCount: { type: integer, format: int32 }
+        lambdasCount: { type: integer, format: int32 }
+
+    ApiDevTeamDetails:
+      type: object
+      description: Team as returned by the get-by-id endpoint — scalar fields plus the full member and lambda collections.
+      properties:
+        devTeamId: { type: integer, format: int32 }
+        ownerUserId: { type: integer, format: int32 }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        members:
+          type: array
+          items: { $ref: '#/components/schemas/ApiDevTeamMember' }
+        lambdas:
+          type: array
+          items: { $ref: '#/components/schemas/ApiLambda' }
+
+    ApiDevTeamMember:
+      type: object
+      properties:
+        userId: { type: integer, format: int32 }
+        startDate: { type: string, format: date-time, nullable: true }
+        endDate: { type: string, format: date-time, nullable: true }
+
+    LambdaConfigResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            apps:
+              type: array
+              items: { $ref: '#/components/schemas/ApiLambda' }
+            versions:
+              type: array
+              items: { $ref: '#/components/schemas/ApiLambdaVersion' }
+            versionsCount: { type: integer, format: int32, nullable: true }
+            lambdaVersionId: { type: integer, format: int32, nullable: true }
+
+    LambdaDeployResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            requestId:
+              type: integer
+              format: int32
+              nullable: true
+              description: Upload id, returned by POST /vf/lambdas/code-uploads.
+            result: { $ref: '#/components/schemas/ApiUpload' }
+
+    PythonImageTagsResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            result:
+              type: array
+              items: { type: string, pattern: '^\d+\.\d+-(arm64|x86_64)$' }
+
+    LambdaAssignmentResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            lambdaAssignmentId: { type: integer, format: int32, nullable: true }
+            assignment: { $ref: '#/components/schemas/ApiLambdaAssignment' }
+            assignments:
+              type: array
+              items: { $ref: '#/components/schemas/ApiLambdaAssignment' }
+
+    LambdaAssignmentApiKeyResponse:
+      allOf:
+        - $ref: '#/components/schemas/ActionResponse'
+        - type: object
+          properties:
+            lambdaApiKey:
+              type: string
+              description: Time-limited JWT to send in the LAMBDA_API_KEY header.
+            expiry:
+              type: integer
+              format: int64
+              description: Expiration time in seconds since the Unix epoch.
+
+    CreateLambdaAssignmentRequest:
+      type: object
+      required: [lambdaId, locationId, testing]
+      properties:
+        lambdaId: { type: integer, format: int32, minimum: 1 }
+        locationId: { type: integer, format: int32, minimum: 1 }
+        testing:
+          type: boolean
+          description: Whether this is a developer testing assignment.
+
+    UpdateLambdaAssignmentRequest:
+      type: object
+      required: [enabled]
+      properties:
+        enabled:
+          type: boolean
+          description: Enables the assignment when true and ends it immediately when false.
+
+    ApiLambdaAssignment:
+      type: object
+      properties:
+        lambdaAssignmentId: { type: integer, format: int32 }
+        lambdaId: { type: integer, format: int32 }
+        active: { type: boolean }
+        testing: { type: boolean }
+        locationId: { type: integer, format: int32 }
+        assignmentDate: { type: string, format: date-time, nullable: true }
+        assignmentDateMs: { type: integer, format: int64 }
+        endDate: { type: string, format: date-time, nullable: true }
+        endDateMs: { type: integer, format: int64, nullable: true }
+        version: { $ref: '#/components/schemas/ApiLambdaVersion' }
+        lambda: { $ref: '#/components/schemas/ApiLambda' }
+
+    ApiUpload:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [CREATED, IN_PROGRESS, COMPLETED, FAILED]
+          description: Current lambda code upload status.
+        message:
+          type: string
+          nullable: true
+          description: Status details, typically populated when the upload fails.
+
+    ApiLambda:
+      type: object
+      properties:
+        lambdaId: { type: integer, format: int32 }
+        lambdaName: { type: string }
+        name: { type: string, nullable: true }
+        author: { type: string, nullable: true }
+        description: { type: string, nullable: true }
+
+    LambdaCreateRequest:
+      type: object
+      required: [lambdaName, devTeamId]
+      properties:
+        lambdaName: { type: string }
+        devTeamId:
+          type: integer
+          format: int32
+          minimum: 1
+          description: Dev team the lambda belongs to. The caller must be a member of this team.
+        description: { type: string, nullable: true }
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    LambdaUpdateRequest:
+      type: object
+      required: [lambdaId]
+      properties:
+        lambdaId: { type: integer, format: int32, minimum: 1 }
+        description: { type: string, nullable: true }
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+
+    PutVersionRequest:
+      type: object
+      description: Lambda version configuration payload.
+      required: [bump]
+      properties:
+        bump:
+          type: string
+          enum: [MAJOR, MINOR, PATCH]
+          description: Semantic-version component to increment; the server derives the version number.
+        whatsnew:
+          type: string
+          nullable: true
+        schedules:
+          type: object
+          additionalProperties: { type: string }
+          nullable: true
+        trigger:
+          type: integer
+          format: int32
+          description: "Trigger event bitmask: 1 = schedule, 2 = location event, 4 = device event."
+        dataStreamAddresses:
+          type: array
+          items:
+            type: string
+            description: Validated data-stream address.
+
+    ApiLambdaVersion:
+      type: object
+      properties:
+        lambdaVersionId: { type: integer, format: int32 }
+        version: { type: string, nullable: true }
+        trigger:
+          type: integer
+          format: int32
+          description: "Trigger event bitmask: 1 = schedule, 2 = location event, 4 = device event."
+        schedules:
+          type: object
+          additionalProperties: { type: string }
+          nullable: true
+        status: { type: string, enum: [DRAFT, UNDER_TEST, PRODUCTION, DISCARDED, FALLBACK, ARCHIVED], nullable: true }
+        statusDate: { type: string, nullable: true }
+        statusDateMs: { type: integer, format: int64 }
+        createdAt: { type: string, nullable: true }
+        createdAtMs: { type: integer, format: int64 }
+        communications:
+          type: array
+          items: { $ref: '#/components/schemas/ApiLambdaCommunication' }
+        dataStreams:
+          type: array
+          items: { $ref: '#/components/schemas/ApiDataStream' }
+        function: { $ref: '#/components/schemas/LambdaFunction' }
+        asyncFunction: { $ref: '#/components/schemas/LambdaFunction' }
+
+    ApiDataStream:
+      type: object
+      properties:
+        address: { type: string }
+
+    LambdaFunction:
+      type: object
+      properties:
+        memory: { type: integer, format: int32 }
+        timeout: { type: integer, format: int32 }
+        name: { type: string, nullable: true }
+        startDate: { type: string, nullable: true }
+        startDateMs: { type: integer, format: int64, nullable: true }
+
+    ApiLambdaCommunication:
+      type: object
+      properties:
+        category: { type: integer, format: int32 }
+        email: { type: boolean }
+        push: { type: boolean }
+        sms: { type: boolean }

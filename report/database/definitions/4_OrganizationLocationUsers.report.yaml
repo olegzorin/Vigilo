@@ -1,0 +1,14 @@
+id: 4
+name: OrganizationLocationUsers
+type: summary
+displayName: Organization Location Users
+description: The list of users and their emails in each location. Only shows users who have location category 1 and 2 (“I live here” and “Family/Friend”)
+query: queries/4_OrganizationLocationUsers.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization Id }
+fields:
+  - { name: locationId, column: id, type: integer, displayName: Location ID }
+  - { name: firstName, column: s1, type: string, displayName: First Name }
+  - { name: lastName, column: s2, type: string, displayName: Last Name }
+  - { name: email, column: s3, type: string, displayName: Email }
+  - { name: arddrStreet, column: s4, type: string, displayName: Street Address }

@@ -1,0 +1,253 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.registry.dao.mapper.DeviceMapper">
+
+    <resultMap id="deviceResultMap" type="dev.olegz.vf.registry.domain.device.Device">
+        <id property="deviceUuid" column="device_uuid"/>
+        <result property="organizationId" column="organization_id"/>
+        <result property="typeId" column="type_id"/>
+        <result property="deviceName" column="device_name"/>
+        <result property="serialNumber" column="serial_number"/>
+        <result property="model" column="model"/>
+        <result property="vendor" column="vendor"/>
+        <result property="manufacturer" column="manufacturer"/>
+    </resultMap>
+
+    <resultMap id="deviceCurrentStateResultMap"
+               type="dev.olegz.vf.registry.domain.device.DeviceCurrentState">
+        <id property="deviceUuid" column="device_uuid"/>
+        <result property="state" column="current_state"
+                typeHandler="dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler"/>
+        <result property="measuredAt" column="measured_at"/>
+        <result property="receivedAt" column="received_at"/>
+    </resultMap>
+
+    <resultMap id="deviceAssignmentResultMap"
+               type="dev.olegz.vf.registry.domain.device.LocationDevice">
+        <id property="deviceUuid" column="device_uuid"/>
+        <id property="locationId" column="location_id"/>
+        <id property="startDate" column="assignment_start_date"/>
+        <result property="endDate" column="assignment_end_date"/>
+    </resultMap>
+
+    <resultMap id="deviceLocationResultMap" extends="deviceAssignmentResultMap"
+               type="dev.olegz.vf.registry.domain.device.LocationDevice">
+        <association property="location" javaType="dev.olegz.vf.registry.domain.account.Location">
+            <id property="locationId" column="location_id"/>
+            <result property="locationName" column="location_name"/>
+            <result property="createdAt" column="location_created_at"/>
+            <result property="deletedAt" column="location_deleted_at"/>
+            <result property="organizationId" column="location_organization_id"/>
+            <association property="address" javaType="dev.olegz.vf.registry.domain.account.Address">
+                <result property="addrStreet1" column="addr_street1"/>
+                <result property="addrStreet2" column="addr_street2"/>
+                <result property="city" column="city"/>
+                <result property="state" column="state"/>
+                <result property="countryCode" column="country_code"/>
+                <result property="postalCode" column="postal_code"/>
+                <result property="timezone" column="timezone"/>
+            </association>
+        </association>
+    </resultMap>
+
+    <resultMap id="locationDeviceResultMap" type="dev.olegz.vf.registry.domain.device.LocationDevice">
+        <id property="deviceUuid" column="device_uuid"/>
+        <id property="locationId" column="location_id"/>
+        <id property="startDate" column="assignment_start_date"/>
+        <result property="endDate" column="assignment_end_date"/>
+        <association property="device" resultMap="deviceResultMap"/>
+        <association property="deviceType" javaType="dev.olegz.vf.registry.domain.device.DeviceType">
+            <id property="typeId" column="type_id"/>
+            <result property="name" column="device_type_name"/>
+        </association>
+        <association property="location" javaType="dev.olegz.vf.registry.domain.account.Location">
+            <id property="locationId" column="location_id"/>
+            <result property="locationName" column="location_name"/>
+            <result property="createdAt" column="location_created_at"/>
+            <result property="deletedAt" column="location_deleted_at"/>
+            <result property="organizationId" column="location_organization_id"/>
+            <association property="address" javaType="dev.olegz.vf.registry.domain.account.Address">
+                <result property="addrStreet1" column="addr_street1"/>
+                <result property="addrStreet2" column="addr_street2"/>
+                <result property="city" column="city"/>
+                <result property="state" column="state"/>
+                <result property="countryCode" column="country_code"/>
+                <result property="postalCode" column="postal_code"/>
+                <result property="timezone" column="timezone"/>
+            </association>
+        </association>
+    </resultMap>
+
+    <resultMap id="locationDeviceWithStateResultMap" extends="locationDeviceResultMap"
+               type="dev.olegz.vf.registry.domain.device.LocationDevice">
+        <association property="deviceCurrentState"
+                     javaType="dev.olegz.vf.registry.domain.device.DeviceCurrentState"
+                     notNullColumn="state_current_state">
+            <id property="deviceUuid" column="state_device_uuid"/>
+            <result property="state" column="state_current_state"
+                    typeHandler="dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler"/>
+            <result property="measuredAt" column="state_measured_at"/>
+            <result property="receivedAt" column="state_received_at"/>
+        </association>
+    </resultMap>
+
+    <sql id="deviceColumns">
+        d.device_uuid, d.organization_id, d.type_id, d.device_name, d.serial_number,
+        d.model, d.vendor, d.manufacturer
+    </sql>
+
+    <sql id="deviceAssignmentColumns">
+        ld.device_uuid, ld.location_id,
+        ld.start_date AS assignment_start_date, ld.end_date AS assignment_end_date
+    </sql>
+
+    <sql id="deviceLocationColumns">
+        <include refid="deviceAssignmentColumns"/>,
+        l.location_name, l.created_at AS location_created_at, l.deleted_at AS location_deleted_at,
+        l.organization_id AS location_organization_id,
+        l.addr_street1, l.addr_street2, l.city, l.state, l.country_code, l.postal_code, l.timezone
+    </sql>
+
+    <insert id="insertDevice">
+        INSERT INTO devices (
+            device_uuid, organization_id, type_id, device_name, serial_number,
+            model, vendor, manufacturer)
+        VALUES (
+            #{deviceUuid}, #{organizationId}, #{typeId}, #{deviceName}, #{serialNumber},
+            #{model}, #{vendor}, #{manufacturer})
+    </insert>
+
+    <select id="selectDevice" resultMap="deviceResultMap">
+        SELECT <include refid="deviceColumns"/>
+        FROM devices d
+        WHERE d.device_uuid = #{deviceUuid}
+            AND d.organization_id = #{organizationId}
+    </select>
+
+    <select id="selectDevices" resultMap="deviceResultMap">
+        SELECT <include refid="deviceColumns"/>
+        FROM devices d
+        WHERE d.organization_id = #{organizationId}
+        <if test="typeId != null">AND d.type_id = #{typeId}</if>
+        <if test="locationId != null">
+            AND EXISTS (
+                SELECT 1
+                FROM location_devices ld
+                JOIN locations l ON l.location_id = ld.location_id
+                WHERE ld.device_uuid = d.device_uuid
+                    AND ld.location_id = #{locationId}
+                    AND (ld.end_date IS NULL OR ld.end_date &gt; NOW())
+                    AND l.deleted_at IS NULL
+            )
+        </if>
+        ORDER BY d.device_name, d.device_uuid
+    </select>
+
+    <select id="selectDeviceCurrentState" resultMap="deviceCurrentStateResultMap">
+        SELECT dcs.device_uuid, dcs.current_state, dcs.measured_at, dcs.received_at
+        FROM device_current_states dcs
+        JOIN devices d ON d.device_uuid = dcs.device_uuid
+        WHERE d.organization_id = #{organizationId}
+            AND dcs.device_uuid = #{deviceUuid}
+    </select>
+
+    <select id="selectDeviceCurrentStateByDeviceUuid" resultMap="deviceCurrentStateResultMap">
+        SELECT device_uuid, current_state, measured_at, received_at
+        FROM device_current_states
+        WHERE device_uuid = #{deviceUuid}
+    </select>
+
+    <insert id="insertDeviceCurrentState">
+        INSERT INTO device_current_states (device_uuid, current_state, measured_at, received_at)
+        VALUES (
+            #{deviceUuid},
+            #{state,typeHandler=dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler},
+            #{measuredAt},
+            #{receivedAt})
+    </insert>
+
+    <update id="updateDeviceCurrentState">
+        UPDATE device_current_states SET
+            current_state =
+                #{state,typeHandler=dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler},
+            measured_at = #{measuredAt},
+            received_at = #{receivedAt}
+        WHERE device_uuid = #{deviceUuid}
+    </update>
+
+    <select id="selectLocationDevices" resultMap="deviceAssignmentResultMap">
+        SELECT <include refid="deviceAssignmentColumns"/>
+        FROM location_devices ld
+        JOIN devices d ON d.device_uuid = ld.device_uuid
+        JOIN locations l ON l.location_id = ld.location_id
+        WHERE d.organization_id = #{organizationId}
+            AND l.organization_id = #{organizationId}
+            AND (ld.end_date IS NULL OR ld.end_date &gt; NOW())
+            AND l.deleted_at IS NULL
+        <if test="typeId != null">AND d.type_id = #{typeId}</if>
+        <if test="locationId != null">AND ld.location_id = #{locationId}</if>
+        ORDER BY d.device_name, d.device_uuid
+    </select>
+
+    <update id="updateDevice">
+        UPDATE devices SET
+            type_id = #{typeId},
+            device_name = #{deviceName},
+            serial_number = #{serialNumber},
+            model = #{model},
+            vendor = #{vendor},
+            manufacturer = #{manufacturer}
+        WHERE device_uuid = #{deviceUuid}
+            AND organization_id = #{organizationId}
+    </update>
+
+    <select id="lockDevice" resultType="string">
+        SELECT device_uuid
+        FROM devices
+        WHERE device_uuid = #{deviceUuid}
+        FOR UPDATE
+    </select>
+
+    <insert id="insertLocationDevice">
+        INSERT INTO location_devices (device_uuid, location_id, start_date, end_date)
+        SELECT #{deviceUuid}, #{locationId}, #{startDate}, #{endDate}
+        WHERE NOT EXISTS (
+            SELECT 1 FROM location_devices
+            WHERE device_uuid = #{deviceUuid}
+                AND (end_date IS NULL OR end_date &gt; NOW())
+        )
+    </insert>
+
+    <select id="selectLocationDevice" resultMap="deviceLocationResultMap">
+        SELECT <include refid="deviceLocationColumns"/>
+        FROM location_devices ld
+        JOIN devices d ON d.device_uuid = ld.device_uuid
+        JOIN locations l ON l.location_id = ld.location_id
+        WHERE d.organization_id = #{organizationId}
+            AND ld.device_uuid = #{deviceUuid}
+            AND l.organization_id = #{organizationId}
+        <if test="locationId != null">AND ld.location_id = #{locationId}</if>
+            AND (ld.end_date IS NULL OR ld.end_date &gt; NOW())
+            AND l.deleted_at IS NULL
+    </select>
+
+    <select id="hasActiveLocationAssignments" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM location_devices
+            WHERE location_id = #{locationId}
+                AND (end_date IS NULL OR end_date &gt; NOW())
+        )
+    </select>
+
+    <update id="deleteLocationDevice">
+        UPDATE location_devices SET end_date = NOW()
+        WHERE device_uuid = #{deviceUuid}
+            AND location_id = #{locationId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+    </update>
+
+</mapper>

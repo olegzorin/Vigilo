@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.registry.dao.mapper.OrganizationMapper">
+
+    <resultMap id="organizationResultMap" type="dev.olegz.vf.registry.domain.account.Organization">
+        <id property="organizationId" column="organization_id"/>
+        <result property="organizationName" column="organization_name"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="adminUserId" column="admin_user_id"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="deletedAt" column="deleted_at"/>
+        <association property="address" javaType="dev.olegz.vf.registry.domain.account.Address">
+            <result property="addrStreet1" column="addr_street1"/>
+            <result property="addrStreet2" column="addr_street2"/>
+            <result property="city" column="city"/>
+            <result property="state" column="state"/>
+            <result property="countryCode" column="country_code"/>
+            <result property="postalCode" column="postal_code"/>
+            <result property="timezone" column="timezone"/>
+        </association>
+    </resultMap>
+
+    <insert id="insertOrganization" useGeneratedKeys="true" keyProperty="organizationId">
+        INSERT INTO organizations (organization_name, parent_id, admin_user_id, created_at, deleted_at,
+            addr_street1, addr_street2, city, state, country_code, postal_code, timezone)
+        VALUES (#{organizationName}, #{parentId}, #{adminUserId}, #{createdAt}, #{deletedAt},
+            #{address.addrStreet1}, #{address.addrStreet2}, #{address.city}, #{address.state},
+            #{address.countryCode}, #{address.postalCode}, #{address.timezone})
+    </insert>
+
+    <select id="selectOrganization" resultMap="organizationResultMap">
+        SELECT organization_id, organization_name, parent_id, admin_user_id, created_at, deleted_at,
+            addr_street1, addr_street2, city, state, country_code, postal_code, timezone
+        FROM organizations
+        WHERE organization_id = #{organizationId}
+            AND deleted_at IS NULL
+    </select>
+
+    <update id="updateOrganization">
+        UPDATE organizations SET
+            organization_name = #{organizationName},
+            deleted_at = #{deletedAt},
+            parent_id = #{parentId},
+            admin_user_id = #{adminUserId},
+            addr_street1 = #{address.addrStreet1},
+            addr_street2 = #{address.addrStreet2},
+            city = #{address.city},
+            state = #{address.state},
+            country_code = #{address.countryCode},
+            postal_code = #{address.postalCode},
+            timezone = #{address.timezone}
+        WHERE organization_id = #{organizationId}
+            AND deleted_at IS NULL
+    </update>
+
+    <update id="deleteOrganization">
+        UPDATE organizations SET deleted_at = NOW()
+        WHERE organization_id = #{organizationId}
+            AND deleted_at IS NULL
+    </update>
+
+</mapper>

@@ -1,0 +1,8 @@
+<configuration debug="false" scan="true">
+
+    <define name="LOG_HOME" class="dev.olegz.vf.common.props.LogHomeProperty"/>
+    <define name="CONFIG_HOME" class="dev.olegz.vf.common.props.ConfigHomeProperty"/>
+    <property name="MODULE" value="core" />
+    <include file="${CONFIG_HOME}/logback-inc.xml"/>
+
+</configuration>

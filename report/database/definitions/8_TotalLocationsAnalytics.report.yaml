@@ -1,0 +1,10 @@
+id: 8
+name: TotalLocationsAnalytics
+type: analytics
+displayName: Total Locations Analytics
+description: Total locations within selected Organization
+query: queries/8_TotalLocationsAnalytics.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization, placeholder: Select organization... }
+fields:
+  - { name: totalLocations, column: n1, type: integer, displayName: Total Locations }

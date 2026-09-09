@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaRunCompletionOutboxMapper">
+    <insert id="insert">
+        INSERT INTO lambda_run_completion_outbox (
+            lambda_assignment_id, lane, run_id, created_at
+        ) VALUES (
+            #{lambdaAssignmentId}, #{lane}, #{runId}, #{createdAt}
+        )
+        ON CONFLICT (lambda_assignment_id, lane, run_id) DO NOTHING
+    </insert>
+
+    <select id="claimNextAvailable" affectData="true" flushCache="true"
+            resultType="dev.olegz.vf.core.domain.lambdarun.LambdaRunCompletionOutboxEntry">
+        WITH candidate AS (
+            SELECT lambda_assignment_id, lane, run_id
+            FROM lambda_run_completion_outbox
+            WHERE claim_until IS NULL OR claim_until &lt;= #{now}
+            ORDER BY created_at, lambda_assignment_id, lane, run_id
+            LIMIT 1
+            FOR UPDATE SKIP LOCKED
+        )
+        UPDATE lambda_run_completion_outbox o
+        SET claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler},
+            claim_until = #{claimUntil}
+        FROM candidate c
+        WHERE o.lambda_assignment_id = c.lambda_assignment_id
+          AND o.lane = c.lane
+          AND o.run_id = c.run_id
+        RETURNING o.lambda_assignment_id, o.lane, o.run_id, o.created_at,
+                  CAST(o.claim_id AS VARCHAR) AS claim_id, o.claim_until
+    </select>
+
+    <update id="renewClaim">
+        UPDATE lambda_run_completion_outbox
+        SET claim_until = #{claimUntil}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND lane = #{lane}
+          AND run_id = #{runId}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </update>
+
+    <delete id="deleteClaimed">
+        DELETE FROM lambda_run_completion_outbox
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND lane = #{lane}
+          AND run_id = #{runId}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </delete>
+
+    <update id="releaseClaim">
+        UPDATE lambda_run_completion_outbox
+        SET claim_id = NULL, claim_until = NULL
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND lane = #{lane}
+          AND run_id = #{runId}
+          AND claim_id = #{claimId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+    </update>
+
+    <delete id="deleteForLambdaAssignment">
+        DELETE FROM lambda_run_completion_outbox
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </delete>
+</mapper>

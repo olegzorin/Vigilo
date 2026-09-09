@@ -1,0 +1,491 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.LambdaRunMapper">
+
+    <sql id="lambdaRuntimeAssignmentCols">
+        i.lambda_assignment_id, i.lambda_id, i.location_id, i.end_date, l.organization_id,
+        v.lambda_version_id, v.function_name, v.async_function_name, v.memory, v.timeout, v.is_public, v.lambda_trigger,
+        b.dev_team_id AS developer_team_id
+    </sql>
+
+    <resultMap id="lambdaRuntimeAssignmentMap" type="dev.olegz.vf.core.domain.lambdarun.LambdaRuntimeAssignment">
+        <id property="lambdaAssignmentId" column="lambda_assignment_id"/>
+        <result property="lambdaId" column="lambda_id"/>
+        <result property="developerTeamId" column="developer_team_id"/>
+        <result property="locationId" column="location_id"/>
+        <result property="endDate" column="end_date"/>
+        <result property="organizationId" column="organization_id"/>
+        <association property="version" javaType="dev.olegz.vf.core.domain.lambdarun.LambdaRuntimeVersion">
+            <id property="lambdaVersionId" column="lambda_version_id"/>
+            <result property="functionName" column="function_name"/>
+            <result property="asyncFunctionName" column="async_function_name"/>
+            <result property="memory" column="memory"/>
+            <result property="timeout" column="timeout"/>
+            <result property="published" column="is_public"/>
+            <result property="trigger" column="lambda_trigger"/>
+        </association>
+    </resultMap>
+
+    <sql id="joinLambdaVersion">
+        JOIN lambdas b ON b.lambda_id = i.lambda_id
+        JOIN lambda_active_versions v ON v.lambda_id = i.lambda_id
+            AND (NOT i.is_testing AND v.is_public OR i.is_testing AND v.latest_status = 1)
+    </sql>
+
+    <sql id="activeLambdaAssignment">
+        i.deleted_at IS NULL AND (i.end_date IS NULL OR i.end_date &gt; #{date})
+    </sql>
+
+    <select id="selectScheduledLambdaAssignments" resultType="dev.olegz.vf.core.domain.lambdarun.ScheduledLambdaAssignment" fetchSize="100">
+        SELECT i.lambda_assignment_id, v.lambda_version_id, i.location_id, COALESCE(l.timezone, o.timezone) AS timezone,
+            i.schedule_last_date, i.schedule_next_date, v.schedule
+        FROM lambda_assignments i
+        <include refid="joinLambdaVersion"/>
+        JOIN locations l ON l.location_id = i.location_id
+        JOIN organizations o ON o.organization_id = l.organization_id
+        WHERE <include refid="activeLambdaAssignment"/> AND v.schedule IS NOT NULL
+            AND l.deleted_at IS NULL
+            AND o.deleted_at IS NULL
+            AND (i.schedule_next_date IS NULL OR i.schedule_next_date &lt;= #{date} OR i.schedule_last_date &lt;= v.schedule_start_date)
+    </select>
+
+    <update id="updateScheduleDates">
+        UPDATE lambda_assignments
+        SET schedule_last_date = #{lastDate},
+            schedule_next_date = #{nextDate}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </update>
+
+    <update id="updateScheduleDatesIfUnchanged">
+        UPDATE lambda_assignments
+        SET schedule_last_date = #{lastDate},
+            schedule_next_date = #{nextDate}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+          AND ((#{expectedLastDate} IS NULL AND schedule_last_date IS NULL) OR schedule_last_date = #{expectedLastDate})
+          AND ((#{expectedNextDate} IS NULL AND schedule_next_date IS NULL) OR schedule_next_date = #{expectedNextDate})
+    </update>
+
+    <select id="selectActiveLambdaRuntimeAssignmentById" resultMap="lambdaRuntimeAssignmentMap">
+        SELECT <include refid="lambdaRuntimeAssignmentCols"/>
+        FROM lambda_assignments i
+        JOIN locations l on l.location_id = i.location_id
+        <include refid="joinLambdaVersion"/>
+        WHERE i.lambda_assignment_id = #{lambdaAssignmentId}
+            AND <include refid="activeLambdaAssignment"/>
+            AND l.deleted_at IS NULL
+    </select>
+
+    <select id="selectRuntimeAssignmentsForLocation" resultMap="lambdaRuntimeAssignmentMap" fetchSize="10">
+        SELECT <include refid="lambdaRuntimeAssignmentCols"/>
+        FROM lambda_assignments i
+            JOIN locations l on l.location_id = i.location_id
+        <include refid="joinLambdaVersion"/>
+        WHERE i.location_id = #{locationId}
+            AND i.deleted_at IS NULL
+            AND l.deleted_at IS NULL
+    </select>
+
+    <select id="selectTriggerLocationMetadata"
+            resultType="dev.olegz.vf.core.domain.lambdarun.input.LocationMetadataSnapshot">
+        SELECT l.location_name AS name,
+            COALESCE(l.timezone, o.timezone) AS timezone,
+            l.country_code AS country,
+            l.city,
+            l.postal_code AS postalCode
+        FROM locations l
+        JOIN organizations o ON o.organization_id = l.organization_id
+        WHERE l.location_id = #{locationId}
+            AND l.deleted_at IS NULL
+            AND o.deleted_at IS NULL
+    </select>
+
+    <select id="selectTriggerLocationDeviceMetadata"
+            resultType="dev.olegz.vf.core.domain.lambdarun.input.LocationDeviceMetadataSnapshot"
+            fetchSize="50">
+        SELECT d.device_uuid,
+            d.type_id AS device_type_id,
+            d.device_name,
+            ld.location_id,
+            CAST(EXTRACT(EPOCH FROM ld.start_date) * 1000 AS bigint) AS start_date
+        FROM location_devices ld
+        JOIN devices d ON d.device_uuid = ld.device_uuid
+        JOIN locations l ON l.location_id = ld.location_id
+        WHERE ld.location_id = #{locationId}
+            AND (ld.end_date IS NULL OR ld.end_date &gt; NOW())
+            AND l.deleted_at IS NULL
+        ORDER BY d.device_uuid
+    </select>
+
+    <resultMap id="locationHydrationRowMap"
+               type="dev.olegz.vf.core.domain.lambdarun.input.LocationHydrationRow">
+        <result property="rowType" column="row_type"/>
+        <result property="locationCurrentState" column="location_current_state"/>
+        <result property="deviceUuid" column="device_uuid"/>
+        <result property="deviceCurrentState" column="device_current_state"
+                typeHandler="dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler"/>
+        <result property="userId" column="user_id"/>
+        <result property="locationAccess" column="location_access"/>
+    </resultMap>
+
+    <resultMap id="varValueMap" type="dev.olegz.vf.core.domain.lambdaassignment.LambdaVariable">
+        <result column="original_size" property="originalSize"/>
+        <result column="value" property="value" jdbcType="VARBINARY" typeHandler="org.apache.ibatis.type.ByteArrayTypeHandler"/>
+        <result column="large_value" property="largeValue" jdbcType="BLOB" typeHandler="org.apache.ibatis.type.BlobTypeHandler"/>
+    </resultMap>
+
+    <select id="selectTriggerLocationHydration" resultMap="locationHydrationRowMap" fetchSize="100">
+        SELECT hydration.*
+        FROM (
+            SELECT 0 AS row_type,
+                lcs.current_state AS location_current_state,
+                NULL::varchar AS device_uuid,
+                NULL::jsonb AS device_current_state,
+                NULL::integer AS user_id,
+                NULL::integer AS location_access
+            FROM locations l
+            LEFT JOIN location_current_states lcs ON lcs.location_id = l.location_id
+            WHERE l.location_id = #{locationId}
+                AND l.deleted_at IS NULL
+
+            UNION ALL
+
+            SELECT 1 AS row_type,
+                NULL::varchar AS location_current_state,
+                d.device_uuid,
+                dcs.current_state AS device_current_state,
+                NULL::integer AS user_id,
+                NULL::integer AS location_access
+            FROM location_devices ld
+            JOIN devices d ON d.device_uuid = ld.device_uuid
+            LEFT JOIN device_current_states dcs ON dcs.device_uuid = d.device_uuid
+            JOIN locations l ON l.location_id = ld.location_id
+            WHERE ld.location_id = #{locationId}
+                AND (ld.end_date IS NULL OR ld.end_date &gt; NOW())
+                AND l.deleted_at IS NULL
+
+            UNION ALL
+
+            SELECT 2 AS row_type,
+                NULL::varchar AS location_current_state,
+                NULL::varchar AS device_uuid,
+                NULL::jsonb AS device_current_state,
+                ul.user_id,
+                0 AS location_access
+            FROM user_locations ul
+            JOIN users u ON u.user_id = ul.user_id
+            WHERE ul.location_id = #{locationId}
+                AND (ul.end_date IS NULL OR ul.end_date &gt; #{date})
+                AND u.deleted_at IS NULL
+        ) hydration
+        ORDER BY hydration.row_type, hydration.device_uuid, hydration.user_id
+    </select>
+
+    <select id="checkLambdaDeviceAccess" resultType="boolean">
+        SELECT EXISTS (
+        SELECT 1
+        FROM location_devices ld
+        JOIN devices d ON d.device_uuid = ld.device_uuid
+        JOIN locations l ON l.location_id = ld.location_id
+        WHERE d.device_uuid = #{deviceId}
+            AND ld.location_id = #{locationId}
+            AND (ld.end_date IS NULL OR ld.end_date &gt; NOW())
+            AND l.deleted_at IS NULL
+        )
+    </select>
+
+    <insert id="insertLambdaRunsInfo">
+        INSERT INTO lambda_run_results (
+            part, lambda_assignment_id, lambda_version_id, result_code, lane, request_date, result_message, triggers,
+            events_count, memory, execution_time, processing_time, event_date, server, retries, function_name)
+        VALUES
+        <foreach collection="runs" item="s" separator=","> (
+            #{s.part}, #{s.lambdaAssignmentId}, #{s.lambdaVersionId}, #{s.resultCode}, #{s.lane}, #{s.requestDate}, #{s.resultMessageCompressed}, #{s.triggers},
+            #{s.eventsCount}, #{s.memory}, #{s.executionTime}, #{s.processingTime}, #{s.eventDate}, #{s.server}, #{s.retries}, #{s.functionName})
+        </foreach>
+    </insert>
+
+    <!-- Lambda Assignment Runs -->
+
+    <insert id="insertLambdaRun">
+        INSERT INTO lambda_latest_runs (
+            lambda_assignment_id, invocation_lane, lambda_version_id, function_name, trigger_count, pending_count, next_input_number,
+            run_id, prev_run_id, invocation_gen, is_started, aws_request_id, aws_log_stream,
+            triggered_at, expiry_date, aws_log_end_date)
+        VALUES (
+            #{lambdaAssignmentId}, #{invocationLane}, #{lambdaVersionId}, #{functionName}, #{triggerCount}, #{pendingCount}, #{nextInputNumber},
+            #{runId}, #{prevRunId}, #{invocationGen}, #{started}, #{awsRequestId}, #{awsLogStream},
+            #{triggeredAt}, #{expiryDate}, #{awsLogEndDate})
+    </insert>
+
+    <select id="selectLambdaRunForUpdate" resultType="dev.olegz.vf.core.domain.lambdarun.LambdaRun">
+        SELECT lambda_assignment_id, invocation_lane, trigger_count, pending_count, next_input_number,
+            lambda_version_id, function_name, run_id, triggered_at, expiry_date, invocation_gen, is_started AS started,
+            aws_request_id, aws_log_stream, prev_run_id, aws_log_end_date
+        FROM lambda_latest_runs
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{lane}
+        FOR UPDATE
+    </select>
+
+    <select id="selectLambdaRunByAwsRequestId" resultType="dev.olegz.vf.core.domain.lambdarun.LambdaRun">
+        SELECT x.lambda_assignment_id, x.invocation_lane, x.lambda_version_id, h.lambda_id, x.run_id, x.triggered_at
+        FROM lambda_latest_runs x
+            JOIN lambda_versions h on x.lambda_version_id = h.lambda_version_id AND h.status IN ('UNDER_TEST','PRODUCTION','DISCARDED','FALLBACK')
+        WHERE x.aws_request_id = #{awsRequestId}
+        LIMIT 1
+    </select>
+
+    <select id="selectLambdaRun" resultType="dev.olegz.vf.core.domain.lambdarun.LambdaRun">
+        SELECT x.lambda_assignment_id, x.invocation_lane, x.lambda_version_id, h.lambda_id, x.run_id, x.triggered_at, x.invocation_gen, x.is_started AS started,
+            x.function_name, x.aws_request_id, x.aws_log_stream, x.pending_count, x.next_input_number, x.expiry_date, x.aws_log_end_date
+        FROM lambda_latest_runs x
+            JOIN lambda_versions h on x.lambda_version_id = h.lambda_version_id AND h.status IN ('UNDER_TEST','PRODUCTION','DISCARDED','FALLBACK')
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{lane}
+    </select>
+
+    <select id="selectLambdaRunsRequiringCompletion" resultType="dev.olegz.vf.core.domain.lambdarun.LambdaRun" fetchSize="10">
+        SELECT x.lambda_assignment_id, i.location_id, x.run_id, x.invocation_lane
+        FROM lambda_latest_runs x
+            JOIN lambda_assignments i ON i.lambda_assignment_id = x.lambda_assignment_id
+                AND i.deleted_at IS NULL AND (i.end_date IS NULL OR i.end_date &gt; NOW())
+        WHERE x.run_id &gt; 0 AND x.expiry_date &lt; #{expiryDate} AND x.invocation_lane = 'DEFAULT'
+    </select>
+
+    <select id="selectAsyncLambdaRunsRequiringCompletion" resultType="dev.olegz.vf.core.domain.lambdarun.LambdaRun" fetchSize="10">
+        SELECT x.lambda_assignment_id, i.location_id, x.run_id, x.invocation_lane
+        FROM lambda_latest_runs x
+            JOIN lambda_assignments i ON i.lambda_assignment_id = x.lambda_assignment_id
+                AND i.deleted_at IS NULL AND (i.end_date IS NULL OR i.end_date &gt; NOW())
+        WHERE x.run_id &gt; 0 AND x.expiry_date &lt; #{expiryDate} AND x.invocation_lane = 'ASYNC'
+    </select>
+
+    <update id="updateLambdaRun" parameterType="dev.olegz.vf.core.domain.lambdarun.LambdaRun">
+        UPDATE lambda_latest_runs
+        SET lambda_version_id = #{lambdaVersionId}, function_name = #{functionName}, run_id = #{runId}, triggered_at = #{triggeredAt},
+            expiry_date = #{expiryDate}, trigger_count = #{triggerCount}, invocation_gen = #{invocationGen}, is_started = #{started},
+            pending_count = #{pendingCount}, next_input_number = #{nextInputNumber},
+            aws_request_id = #{awsRequestId}, aws_log_stream = #{awsLogStream}, prev_run_id = #{prevRunId}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{invocationLane}
+        <if test="(prevRunId == null) and (trigger != 0)">
+            AND (run_id = 0 OR expiry_date IS NULL OR expiry_date &lt; #{triggeredAt})
+        </if>
+    </update>
+
+    <update id="updateLambdaRunPendingCount">
+        UPDATE lambda_latest_runs
+        SET pending_count = #{pendingCount}, next_input_number = #{nextInputNumber}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{lane}
+    </update>
+
+    <update id="updateLambdaRunAsStarted">
+        UPDATE lambda_latest_runs
+        SET invocation_gen = invocation_gen + 1, is_started = true
+            <if test="awsRequestId != null">, aws_request_id = #{awsRequestId}</if>
+            <if test="awsLogStream != null">, aws_log_stream = #{awsLogStream}</if>
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{lane}
+            AND run_id = #{runId} AND invocation_gen = #{invocationGen}
+    </update>
+
+    <update id="updateLambdaRunAsNotStarted">
+        UPDATE lambda_latest_runs
+        SET invocation_gen = invocation_gen + 1, is_started = false
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{lane}
+    </update>
+
+    <update id="updateLambdaRunForRetry">
+        UPDATE lambda_latest_runs
+        SET invocation_gen = #{invocationGen}, is_started = false,
+            aws_request_id = NULL,
+            aws_log_stream = NULL,
+            expiry_date = #{expiryDate}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{lane}
+    </update>
+
+    <update id="updateLambdaRunAsComplete">
+        UPDATE lambda_latest_runs
+        SET prev_run_id = run_id, run_id = 0,
+            pending_count = 0, next_input_number = NULL
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = #{lane}
+        <if test="prevRunId != null">
+            AND run_id = #{prevRunId}
+            AND (pending_count = 0 OR next_input_number IS NULL)
+        </if>
+    </update>
+
+    <update id="updateLambdaRunSubmitAsync">
+        UPDATE lambda_latest_runs
+        SET aws_request_id = #{awsRequestId}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId} AND invocation_lane = 'ASYNC'
+            AND run_id = #{runId} AND aws_request_id IS NULL
+    </update>
+
+    <!-- Lambda Pending Inputs -->
+
+    <sql id="paddedLambdaPendingInputData">
+        input.data || decode(repeat('00', #{paddedSize} - #{input.inputSize}), 'hex')
+    </sql>
+
+    <update id="updateLambdaPendingInput">
+        WITH input AS (
+            SELECT CAST(#{large} AS boolean) AS large, CAST(#{input.data} AS bytea) AS data
+        )
+        UPDATE lambda_pending_inputs_p
+        SET input_number = #{input.inputNumber},
+            input_size = #{input.inputSize},
+            is_large_input = input.large,
+            input_data = CASE WHEN input.large THEN NULL ELSE
+                <include refid="paddedLambdaPendingInputData"/> END,
+            large_input_data = CASE WHEN input.large THEN input.data ELSE NULL END
+        FROM input
+        WHERE (tableoid, ctid) IN (
+            SELECT tableoid, ctid
+            FROM lambda_pending_inputs_p
+            WHERE part IN (MOD(#{part} + 3, 4), #{part})
+              AND lambda_assignment_id = #{lambdaAssignmentId}
+              AND lane = #{lane}
+              AND input_number &lt; #{nextInputNumber}
+            LIMIT 1)
+    </update>
+
+    <insert id="insertLambdaPendingInput">
+        WITH input AS (
+            SELECT CAST(#{large} AS boolean) AS large, CAST(#{input.data} AS bytea) AS data
+        )
+        INSERT INTO lambda_pending_inputs_p (
+            part, lambda_assignment_id, lane, input_number, input_size,
+            is_large_input, input_data, large_input_data)
+        SELECT
+            #{part}, #{lambdaAssignmentId}, #{lane}, #{input.inputNumber}, #{input.inputSize},
+            input.large,
+            CASE WHEN input.large THEN NULL ELSE
+                <include refid="paddedLambdaPendingInputData"/> END,
+            CASE WHEN input.large THEN input.data ELSE NULL END
+        FROM input
+    </insert>
+
+    <select id="selectLambdaPendingInputs" resultType="dev.olegz.vf.core.domain.lambdarun.LambdaPendingInputRecord" fetchSize="5">
+        SELECT input_number, input_size,
+            CASE WHEN is_large_input THEN large_input_data ELSE SUBSTR(input_data, 1, input_size) END AS "data"
+        FROM lambda_pending_inputs_p
+        WHERE part IN (${partitions})
+            AND lambda_assignment_id = #{lambdaAssignmentId}
+            AND lane = #{lane}
+            AND input_number &gt;= #{nextInputNumber}
+        <if test="sorted">
+            ORDER BY input_number
+        </if>
+        LIMIT #{maxCount}
+    </select>
+
+    <delete id="deleteLambdaPendingInputs">
+        DELETE FROM lambda_pending_inputs_p
+        WHERE (tableoid, ctid) IN (
+            SELECT tableoid, ctid
+            FROM lambda_pending_inputs_p
+            WHERE lambda_assignment_id = #{lambdaAssignmentId}
+            LIMIT #{limit})
+    </delete>
+
+    <delete id="deleteLambdaAssignmentRun">
+        DELETE FROM lambda_latest_runs
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </delete>
+
+    <select id="selectLambdaAssignmentVariable" resultMap="varValueMap">
+        SELECT v.original_size, v.value, v.large_value
+        FROM lambda_assignment_vars v
+        JOIN lambda_assignments i ON i.lambda_assignment_id = v.lambda_assignment_id
+            AND i.private_variable_generation = v.generation
+        WHERE v.lambda_assignment_id = #{lambdaAssignmentId}
+            AND v.generation = #{generation}
+            AND v.variable_name = #{name}
+    </select>
+
+    <delete id="deleteLambdaAssignmentVariable">
+        DELETE FROM lambda_assignment_vars
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+        <if test="generation != null">AND generation = #{generation}</if>
+        <if test="name != null">AND variable_name = #{name}</if>
+    </delete>
+
+    <insert id="insertLambdaAssignmentVariable">
+        INSERT INTO lambda_assignment_vars
+            (lambda_assignment_id, generation, variable_name, update_date, original_size, value, large_value)
+        SELECT lambda_assignment_id, #{generation}, #{name}, #{updateDate}, #{originalSize}, #{smallValue}, #{largeValue}
+        FROM lambda_assignments
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+            AND private_variable_generation = #{generation}
+    </insert>
+
+    <update id="updateLambdaAssignmentVariable">
+        UPDATE lambda_assignment_vars
+        SET update_date = #{updateDate}, original_size = #{originalSize}, value = #{smallValue}, large_value = #{largeValue}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+            AND generation = #{generation}
+            AND variable_name = #{name}
+            AND EXISTS (
+                SELECT 1
+                FROM lambda_assignments
+                WHERE lambda_assignment_id = #{lambdaAssignmentId}
+                    AND private_variable_generation = #{generation})
+    </update>
+
+    <select id="selectLambdaAssignmentVariableGeneration" resultType="long">
+        SELECT private_variable_generation
+        FROM lambda_assignments
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+    </select>
+
+    <update id="advanceLambdaAssignmentVariableGeneration">
+        UPDATE lambda_assignments
+        SET private_variable_generation = #{generation}
+        WHERE lambda_assignment_id = #{lambdaAssignmentId}
+            AND private_variable_generation &lt; #{generation}
+    </update>
+
+    <select id="selectInactiveAssignmentVariables" resultType="Integer" fetchSize="1000">
+        SELECT DISTINCT v.lambda_assignment_id
+        FROM lambda_assignment_vars v
+        WHERE NOT EXISTS (SELECT 1
+            FROM lambda_latest_runs e
+            WHERE e.lambda_assignment_id = v.lambda_assignment_id
+                AND e.invocation_lane = 'DEFAULT' AND e.triggered_at > #{date})
+        LIMIT #{maxCount}
+    </select>
+
+    <select id="selectLambdaLocationVariable" resultMap="varValueMap">
+        SELECT original_size, value
+        FROM lambda_location_vars
+        WHERE location_id = #{locationId} AND variable_name = #{name}
+    </select>
+
+    <delete id="deleteLambdaLocationVariables">
+        DELETE FROM lambda_location_vars
+        WHERE location_id = #{locationId}
+        <if test="name != null">AND variable_name = #{name}</if>
+    </delete>
+
+    <insert id="insertLambdaLocationVariable">
+        INSERT INTO lambda_location_vars (location_id, variable_name, update_date, original_size, value)
+        VALUES (#{locationId}, #{name}, #{updateDate}, #{originalSize}, #{smallValue})
+    </insert>
+
+    <update id="updateLambdaLocationVariable">
+        UPDATE lambda_location_vars
+        SET update_date = #{updateDate}, original_size = #{originalSize}, value = #{smallValue}
+        WHERE location_id = #{locationId} AND variable_name = #{name}
+    </update>
+
+    <select id="selectInactiveLocationVariables" resultType="Integer" fetchSize="1000">
+        SELECT v.location_id
+        FROM lambda_location_vars v
+        WHERE NOT EXISTS (SELECT 1
+            FROM lambda_assignments i, lambda_latest_runs e
+            WHERE i.location_id = v.location_id
+                AND e.lambda_assignment_id = i.lambda_assignment_id
+                AND e.invocation_lane = 'DEFAULT' AND e.triggered_at > #{date})
+        LIMIT #{maxCount}
+    </select>
+</mapper>

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+    PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+    "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.core.dao.mapper.SystemMapper">
+
+    <select id="selectLatestPartitionDesc" resultType="String">
+        SELECT MAX(substring(pg_get_expr(child.relpartbound, child.oid)
+            FROM 'TO \(''([^'']+)''\)'))
+        FROM pg_inherits inheritance
+        JOIN pg_class parent ON parent.oid = inheritance.inhparent
+        JOIN pg_class child ON child.oid = inheritance.inhrelid
+        WHERE parent.relname = #{tableName}
+          AND parent.relnamespace = to_regnamespace(current_schema())
+          AND pg_get_expr(child.relpartbound, child.oid) LIKE '% TO %'
+    </select>
+
+    <select id="selectPartitionDescriptions" resultType="String" fetchSize="20">
+        SELECT substring(pg_get_expr(child.relpartbound, child.oid)
+            FROM 'TO \(''([^'']+)''\)') AS partition_description
+        FROM pg_inherits inheritance
+        JOIN pg_class parent ON parent.oid = inheritance.inhparent
+        JOIN pg_class child ON child.oid = inheritance.inhrelid
+        WHERE parent.relname = #{tableName}
+          AND parent.relnamespace = to_regnamespace(current_schema())
+          AND pg_get_expr(child.relpartbound, child.oid) LIKE '% TO %'
+    </select>
+
+    <update id="addPartition">
+        CREATE TABLE ${tableName}_${newPartName} PARTITION OF ${tableName}
+        FOR VALUES FROM (${previousPartDate}) TO (${newPartDate})
+    </update>
+
+    <update id="truncateTablePartition">
+        TRUNCATE TABLE ${tableName}_${partName}
+    </update>
+
+</mapper>

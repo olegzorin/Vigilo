@@ -1,9 +1,9 @@
 id: 1
-name: NewUsers
+name: NewResidents
 type: summary
-displayName: New Users
-description: The number of new users registered during the specified period, optionally grouped by application
-query: queries/1_NewUsers.sql
+displayName: New Residents
+description: The number of new residents registered during the specified period, grouped by period
+query: queries/1_NewResidents.sql
 parameters:
   - name: organizationId
     type: integer

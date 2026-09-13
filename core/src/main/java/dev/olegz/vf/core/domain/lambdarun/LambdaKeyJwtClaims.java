@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import dev.olegz.vf.registry.service.encryption.JwtClaims;
 
 public class LambdaKeyJwtClaims extends JwtClaims {
+    public Integer uid; // set only for manually issued keys; reauthorized on every request
+    public int av; // authorization model version; absent legacy keys must be reissued
     public int aid; // lambda assignment ID
     public int bid; // lambda ID
     public int tid; // dev team ID
@@ -27,6 +29,7 @@ public class LambdaKeyJwtClaims extends JwtClaims {
         int triggers,
         long variableGeneration)
     {
+        this.av = 2;
         this.ty = JwtClaims.TYPE_LAMBDA;
         this.exp = Instant.now().getEpochSecond() + expiry;
         this.aid = lambda.lambdaAssignmentId;
@@ -41,6 +44,6 @@ public class LambdaKeyJwtClaims extends JwtClaims {
 
     @Override
     public boolean valid() {
-        return (aid != 0) && (bid != 0) && (ty == JwtClaims.TYPE_LAMBDA);
+        return av == 2 && (aid != 0) && (bid != 0) && (ty == JwtClaims.TYPE_LAMBDA);
     }
 }

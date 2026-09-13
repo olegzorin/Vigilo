@@ -69,8 +69,8 @@ class TriggerEventDataServiceImplTest {
         location.name = "Home";
         location.currentState = "home";
 
-        LocationUserSnapshot user = new LocationUserSnapshot();
-        user.userId = 101;
+        LocationResidentSnapshot user = new LocationResidentSnapshot();
+        user.residentId = 101;
 
         TriggerEventData data = TriggerEventDataServiceImpl.hydrate(
             event,
@@ -90,11 +90,11 @@ class TriggerEventDataServiceImplTest {
         assertEquals(1, data.locationDevices.size());
         assertEquals("device-1", data.locationDevices.getFirst().deviceUuid);
         assertEquals(Map.of("online", true), data.locationDevices.getFirst().currentState);
-        assertEquals(List.of(user), data.locationUsers);
+        assertEquals(List.of(user), data.locationResidents);
         assertEquals(List.of(), data.scheduleIds);
         assertThrows(UnsupportedOperationException.class, () -> data.newDeviceState.clear());
         assertThrows(UnsupportedOperationException.class, () -> data.locationDevices.clear());
-        assertThrows(UnsupportedOperationException.class, () -> data.locationUsers.clear());
+        assertThrows(UnsupportedOperationException.class, () -> data.locationResidents.clear());
     }
 
     @Test
@@ -106,7 +106,7 @@ class TriggerEventDataServiceImplTest {
             null);
 
         assertTrue(data.locationDevices.isEmpty());
-        assertTrue(data.locationUsers.isEmpty());
+        assertTrue(data.locationResidents.isEmpty());
         assertTrue(data.scheduleIds.isEmpty());
     }
 

@@ -35,7 +35,7 @@ public class ReportsAction {
     }
 
     public Response putReportGroupOrganization(ReportActionContext context, int organizationId, int reportGroupId) {
-        context.requireAdminOfOrganizationOrAncestor(organizationId);
+        requireOrganizationAdmin(context, organizationId);
         reportsService.setReportGroupOrganization(reportGroupId, organizationId);
         return new Response();
     }
@@ -49,8 +49,9 @@ public class ReportsAction {
     public Response getReports(ReportActionContext context, Integer reportId, Integer organizationId,
         Integer reportGroupId, Boolean analytic)
     {
-        context.user();
-        if (organizationId != null) context.requireSameOrganization(organizationId);
+        context.requireAdmin();
+        if (organizationId == null) organizationId = context.user().organizationId;
+        context.requireSameOrganization(organizationId);
         Response response = new Response();
         response.reports = reportsService.getReports(reportId, organizationId, reportGroupId, analytic)
             .stream().map(ApiReport::new).toList();
@@ -60,8 +61,9 @@ public class ReportsAction {
     public Response getReportExecutions(ReportActionContext context, Instant startDate, Instant endDate,
         int reportId, int reportGroupId, Integer organizationId, String downloadBaseUrl)
     {
-        context.user();
-        if (organizationId != null) context.requireSameOrganization(organizationId);
+        context.requireAdmin();
+        if (organizationId == null) organizationId = context.user().organizationId;
+        context.requireSameOrganization(organizationId);
         if (!startDate.isBefore(endDate)) throw new ApplicationFailureException("startDate must be before endDate");
         Report report = reportsService.getScheduledReportExecutions(reportId, reportGroupId, organizationId,
             Timestamp.from(startDate), Timestamp.from(endDate));
@@ -84,8 +86,9 @@ public class ReportsAction {
     public Response runReport(ReportActionContext context, int reportId, Integer organizationId,
         Map<String, String> parameters, String downloadBaseUrl)
     {
-        context.user();
-        if (organizationId != null) context.requireSameOrganization(organizationId);
+        context.requireAdmin();
+        if (organizationId == null) organizationId = context.user().organizationId;
+        context.requireSameOrganization(organizationId);
         ReportExecution execution = reportsService.executeOnDemand(
             reportId, organizationId, parameters, ZoneOffset.UTC);
         Response response = new Response();

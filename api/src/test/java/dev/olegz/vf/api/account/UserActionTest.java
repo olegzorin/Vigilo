@@ -19,7 +19,7 @@ class UserActionTest {
     @Test
     void getUsers_adminSearchesOwnOrganization() {
         RecordingUserService userService = new RecordingUserService();
-        UserAction action = new UserAction(userService, new RecordingUserKeyService(), new FakeLocationDao());
+        UserAction action = new UserAction(userService, new RecordingUserKeyService());
         User admin = user(42, 7);
 
         UserAction.UsersResponse response = action.getUsers(
@@ -44,7 +44,7 @@ class UserActionTest {
     @Test
     void getUsers_ordinaryUserSearchesOnlyOwnAccount() {
         RecordingUserService userService = new RecordingUserService();
-        UserAction action = new UserAction(userService, new RecordingUserKeyService(), new FakeLocationDao());
+        UserAction action = new UserAction(userService, new RecordingUserKeyService());
         User caller = user(42, 7);
 
         action.getUsers(context(caller, false), null, null, null);
@@ -57,9 +57,7 @@ class UserActionTest {
     void authenticate_returnsUserAndApiKey() {
         RecordingUserService userService = new RecordingUserService();
         RecordingUserKeyService userKeyService = new RecordingUserKeyService();
-        FakeLocationDao locationDao = new FakeLocationDao();
-        locationDao.assignedLocation = location(10, 7);
-        UserAction action = new UserAction(userService, userKeyService, locationDao);
+        UserAction action = new UserAction(userService, userKeyService);
         UserAction.AuthenticateRequest request = new UserAction.AuthenticateRequest();
         request.username = "alice";
         request.password = "password";
@@ -70,7 +68,6 @@ class UserActionTest {
         assertEquals("password", userService.password);
         assertEquals(42, response.user.userId);
         assertEquals("alice", response.user.username);
-        assertEquals(10, response.location.locationId);
         assertEquals(42, userKeyService.userId);
         assertEquals("api-key", response.apiKey);
     }
@@ -121,10 +118,6 @@ class UserActionTest {
             return List.of(user(99, 7));
         }
 
-        @Override
-        public List<User> getUsersByLocation(int locationId) {
-            throw new UnsupportedOperationException();
-        }
 
         @Override
         public User updateProfile(User user) {
@@ -157,12 +150,6 @@ class UserActionTest {
     private static final class FakeLocationDao implements LocationDao {
         private Location assignedLocation;
 
-        @Override
-        public Location getLocationByUser(User user) {
-            return assignedLocation != null && assignedLocation.organizationId == user.organizationId
-                ? assignedLocation
-                : null;
-        }
 
         @Override public void insertLocation(Location location) { throw new UnsupportedOperationException(); }
         @Override public Location getOrganizationLocation(int organizationId, int locationId) { throw new UnsupportedOperationException(); }

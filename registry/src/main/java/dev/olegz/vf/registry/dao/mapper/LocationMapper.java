@@ -28,9 +28,6 @@ public interface LocationMapper {
 
     List<Location> selectLocationsByOrganization(int organizationId);
 
-    Location selectLocationByUser(
-        @Param("userId") int userId,
-        @Param("organizationId") int organizationId);
 
     boolean updateLocation(Location location);
 

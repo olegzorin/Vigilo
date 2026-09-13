@@ -11,6 +11,7 @@
         <result property="createdAt" column="created_at"/>
         <result property="deletedAt" column="deleted_at"/>
         <result property="organizationId" column="organization_id"/>
+        <result property="locationType" column="location_type"/>
         <association property="address" javaType="dev.olegz.vf.registry.domain.account.Address">
             <result property="addrStreet1" column="addr_street1"/>
             <result property="addrStreet2" column="addr_street2"/>
@@ -30,15 +31,15 @@
     </resultMap>
 
     <insert id="insertLocation" useGeneratedKeys="true" keyProperty="locationId">
-        INSERT INTO locations (location_name, created_at, deleted_at, organization_id,
+        INSERT INTO locations (location_name, created_at, deleted_at, organization_id, location_type,
             addr_street1, addr_street2, city, state, country_code, postal_code, timezone)
-        VALUES (#{locationName}, #{createdAt}, #{deletedAt}, #{organizationId},
+        VALUES (#{locationName}, #{createdAt}, #{deletedAt}, #{organizationId}, #{locationType},
             #{address.addrStreet1}, #{address.addrStreet2}, #{address.city}, #{address.state},
             #{address.countryCode}, #{address.postalCode}, #{address.timezone})
     </insert>
 
     <select id="selectLocation" resultMap="locationResultMap">
-        SELECT location_id, location_name, created_at, deleted_at, organization_id,
+        SELECT location_id, location_name, created_at, deleted_at, organization_id, location_type,
             addr_street1, addr_street2, city, state, country_code, postal_code, timezone
         FROM locations
         WHERE location_id = #{locationId}
@@ -82,7 +83,7 @@
     </update>
 
     <select id="selectLocationsByOrganization" resultMap="locationResultMap">
-        SELECT location_id, location_name, created_at, deleted_at, organization_id,
+        SELECT location_id, location_name, created_at, deleted_at, organization_id, location_type,
             addr_street1, addr_street2, city, state, country_code, postal_code, timezone
         FROM locations
         WHERE organization_id = #{organizationId}
@@ -90,18 +91,6 @@
         ORDER BY location_name, location_id
     </select>
 
-    <select id="selectLocationByUser" resultMap="locationResultMap">
-        SELECT l.location_id, l.location_name, l.created_at, l.deleted_at, l.organization_id,
-            l.addr_street1, l.addr_street2, l.city, l.state, l.country_code, l.postal_code, l.timezone
-        FROM locations l
-        JOIN user_locations ul ON ul.location_id = l.location_id
-        WHERE ul.user_id = #{userId}
-            AND l.organization_id = #{organizationId}
-            AND l.deleted_at IS NULL
-            AND (ul.end_date IS NULL OR ul.end_date &gt; NOW())
-        ORDER BY ul.start_date DESC
-        LIMIT 1
-    </select>
 
     <update id="updateLocation">
         UPDATE locations SET

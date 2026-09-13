@@ -1,6 +1,8 @@
 package dev.olegz.vf.core.domain.lambdarun.input;
 
+import dev.olegz.vf.registry.domain.account.LocationType;
 public class LocationSnapshot {
+    public LocationType locationType;
     public String name;
     public String timezone;
     public String country;
@@ -12,6 +14,7 @@ public class LocationSnapshot {
         if (metadata == null) return null;
 
         LocationSnapshot snapshot = new LocationSnapshot();
+        snapshot.locationType = metadata.locationType;
         snapshot.name = metadata.name;
         snapshot.timezone = metadata.timezone;
         snapshot.country = metadata.country;

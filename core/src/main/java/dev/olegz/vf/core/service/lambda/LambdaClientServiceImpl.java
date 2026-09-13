@@ -1,5 +1,8 @@
 package dev.olegz.vf.core.service.lambda;
 
+import dev.olegz.vf.core.dao.DevTeamDao;
+import dev.olegz.vf.registry.dao.UserDao;
+import dev.olegz.vf.registry.service.account.AccessService;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.text.ParseException;
@@ -52,6 +55,18 @@ import org.springframework.transaction.annotation.Transactional;
 @Service("lambdaClientService")
 public class LambdaClientServiceImpl implements LambdaClientService {
     private static final Logger logger = LoggerFactory.getLogger(LambdaClientServiceImpl.class);
+
+    private AccessService access;
+    private UserDao users;
+    private DevTeamDao teams;
+
+    @Autowired
+    public void configureAuthorization(AccessService access,
+        UserDao users, DevTeamDao teams) {
+        this.access = access;
+        this.users = users;
+        this.teams = teams;
+    }
 
     private final LambdaRunDao lambdaRunDao;
     private final LambdaVariableDao lambdaVariableDao;
@@ -142,27 +157,14 @@ public class LambdaClientServiceImpl implements LambdaClientService {
             throw new ObjectNotFoundException("Lambda assignment not found or inactive");
         }
 
-        Location userLocation = locationDao.getLocationByUser(user);
-        boolean locationOwner = userLocation != null && userLocation.locationId == lambda.locationId;
-        if (!locationOwner) {
-            Organization organization = organizationDao.getOrganization(lambda.organizationId);
-            boolean organizationAdmin = user.organizationId == lambda.organizationId &&
-                organization != null && organization.adminUserId != null &&
-                organization.adminUserId == user.userId;
-            if (!organizationAdmin) {
-                throw new AccessDeniedException("Lambda assignment is not accessible");
-            }
-        }
-
-        LambdaKeyInput key = createLambdaKey(
-            lambda,
-            Math.toIntExact(PropertyStore.getDuration(DurationProp.LAMBDA_USER_KEY_EXPIRY).toSeconds()),
-            InvocationLane.DEFAULT,
-            0);
-        if (key.key == null) {
-            throw new ApplicationFailureException("Cannot generate lambda API key");
-        }
-        return key;
+        requireUserLambdaAccess(user, lambda);
+        LambdaKeyJwtClaims claims = new LambdaKeyJwtClaims(lambda,
+            PropertyStore.getDuration(DurationProp.LAMBDA_USER_KEY_EXPIRY).toSeconds(),
+            InvocationLane.DEFAULT, 0, lambdaVariableDao.getLambdaAssignmentVariableGeneration(lambdaAssignmentId));
+        claims.uid = user.userId;
+        String token = jwtService.createJwt(claims, SigningAlgorithm.HS512);
+        if (token == null) throw new ApplicationFailureException("Cannot generate lambda API key");
+        return new LambdaKeyInput(token, claims.exp);
     }
 
     @Override
@@ -171,7 +173,19 @@ public class LambdaClientServiceImpl implements LambdaClientService {
 
         LambdaKeyJwtClaims jwtClaims = jwtService.verifyJwt(appKey, LambdaKeyJwtClaims.class);
 
+        if (jwtClaims.uid != null) {
+            LambdaRuntimeAssignment lambda = lambdaRunDao.getActiveLambdaRuntimeAssignment(jwtClaims.aid);
+            if (lambda == null || lambda.locationId != jwtClaims.lid || lambda.lambdaId != jwtClaims.bid) throw new InvalidJwtException();
+            requireUserLambdaAccess(users.getUser(jwtClaims.uid), lambda);
+        }
         return new LambdaKey(jwtClaims);
+    }
+
+    private void requireUserLambdaAccess(User user, LambdaRuntimeAssignment lambda) {
+        access.requireLocation(user, lambda.locationId);
+        if (!access.isAdmin(user) && !teams.checkDevTeamMember(lambda.developerTeamId, user.userId)) {
+            throw new AccessDeniedException("Lambda team membership required");
+        }
     }
 
     // Lambdas run methods

@@ -102,6 +102,10 @@
                b.created_at, b.max_version, b.max_sequence
         FROM lambdas b
         JOIN dev_team_members tm ON tm.dev_team_id = b.dev_team_id AND tm.user_id = #{userId}
+            AND tm.start_date &lt;= NOW() AND (tm.end_date IS NULL OR tm.end_date &gt; NOW())
+            AND EXISTS (SELECT 1 FROM users u JOIN dev_teams dt ON dt.organization_id = u.organization_id
+                WHERE u.user_id = tm.user_id AND dt.dev_team_id = tm.dev_team_id
+                AND u.deleted_at IS NULL AND u.account_type = 'DEVELOPER')
         WHERE lambda_id = #{lambdaId}
     </select>
 
@@ -110,6 +114,10 @@
         FROM lambdas b
         JOIN dev_teams t ON t.dev_team_id = b.dev_team_id
         JOIN dev_team_members tm ON tm.dev_team_id = b.dev_team_id AND tm.user_id = #{userId}
+            AND tm.start_date &lt;= NOW() AND (tm.end_date IS NULL OR tm.end_date &gt; NOW())
+            AND EXISTS (SELECT 1 FROM users u JOIN dev_teams dt ON dt.organization_id = u.organization_id
+                WHERE u.user_id = tm.user_id AND dt.dev_team_id = tm.dev_team_id
+                AND u.deleted_at IS NULL AND u.account_type = 'DEVELOPER')
         <if test="teamId != null">AND t.dev_team_id = #{teamId}</if>
     </select>
 
@@ -124,6 +132,10 @@
         SELECT <include refid="lambdaCols"/>
         FROM lambdas b
         JOIN dev_team_members tm ON tm.dev_team_id = b.dev_team_id AND tm.user_id = #{userId}
+            AND tm.start_date &lt;= NOW() AND (tm.end_date IS NULL OR tm.end_date &gt; NOW())
+            AND EXISTS (SELECT 1 FROM users u JOIN dev_teams dt ON dt.organization_id = u.organization_id
+                WHERE u.user_id = tm.user_id AND dt.dev_team_id = tm.dev_team_id
+                AND u.deleted_at IS NULL AND u.account_type = 'DEVELOPER')
         WHERE b.lambda_id = #{lambdaId}
         FOR UPDATE OF b
     </select>

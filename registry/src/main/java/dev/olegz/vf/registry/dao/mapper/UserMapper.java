@@ -18,7 +18,6 @@ public interface UserMapper {
         @Param("lastName") String lastName,
         @Param("email") String email);
 
-    List<User> selectUsersByLocation(int locationId);
 
     User selectUserByUsername(String username);
 

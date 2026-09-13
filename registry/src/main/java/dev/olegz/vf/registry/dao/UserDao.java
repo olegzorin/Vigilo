@@ -29,10 +29,6 @@ public interface UserDao {
         String lastName,
         String email);
 
-    /**
-     * @return the non-deleted users currently assigned to the location, ordered by name and id.
-     */
-    List<User> getUsersByLocation(int locationId);
 
     /**
      * @return the non-deleted user with the given username, or {@code null} if none exists.

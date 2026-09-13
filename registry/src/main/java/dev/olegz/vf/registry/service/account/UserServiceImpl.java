@@ -70,10 +70,6 @@ public class UserServiceImpl implements UserService {
             normalizeFilter(email));
     }
 
-    @Override
-    public List<User> getUsersByLocation(int locationId) {
-        return userDao.getUsersByLocation(locationId);
-    }
 
     private static String normalizeFilter(String value) {
         return value == null || value.isBlank() ? null : value.trim();

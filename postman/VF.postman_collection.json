@@ -7,35 +7,154 @@
   "auth": {
     "type": "apikey",
     "apikey": [
-      { "key": "key", "value": "API_KEY", "type": "string" },
-      { "key": "value", "value": "{{apiKey}}", "type": "string" },
-      { "key": "in", "value": "header", "type": "string" }
+      {
+        "key": "key",
+        "value": "API_KEY",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{apiKey}}",
+        "type": "string"
+      },
+      {
+        "key": "in",
+        "value": "header",
+        "type": "string"
+      }
     ]
   },
   "variable": [
-    { "key": "baseUrl", "value": "http://localhost:8086/vf", "type": "string" },
-    { "key": "apiKey", "value": "", "type": "string" },
-    { "key": "lambdaApiKey", "value": "", "type": "string" },
-    { "key": "userId", "value": "", "type": "string" },
-    { "key": "organizationId", "value": "", "type": "string" },
-    { "key": "locationId", "value": "", "type": "string" },
-    { "key": "deviceUuid", "value": "", "type": "string" },
-    { "key": "deviceTypeId", "value": "1", "type": "string" },
-    { "key": "invocationToken", "value": "", "type": "string" },
-    { "key": "awsRequestId", "value": "", "type": "string" },
-    { "key": "logStreamName", "value": "", "type": "string" },
-    { "key": "variableName", "value": "example", "type": "string" },
-    { "key": "lambdaName", "value": "", "type": "string" },
-    { "key": "lambdaId", "value": "", "type": "string" },
-    { "key": "buildTarget", "value": "3.14-arm64", "type": "string" },
-    { "key": "lambdaAssignmentId", "value": "", "type": "string" },
-    { "key": "devTeamId", "value": "", "type": "string" },
-    { "key": "reportId", "value": "", "type": "string" },
-    { "key": "reportGroupId", "value": "", "type": "string" },
-    { "key": "reportStartDate", "value": "2026-08-19T00:00:00Z", "type": "string" },
-    { "key": "reportEndDate", "value": "2026-08-20T00:00:00Z", "type": "string" },
-    { "key": "reportDownloadToken", "value": "", "type": "string" },
-    { "key": "uploadId", "value": "", "type": "string" }
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8086/vf",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lambdaApiKey",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "organizationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "locationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "deviceUuid",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "deviceTypeId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "invocationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "awsRequestId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "logStreamName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "variableName",
+      "value": "example",
+      "type": "string"
+    },
+    {
+      "key": "lambdaName",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "lambdaId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "buildTarget",
+      "value": "3.14-arm64",
+      "type": "string"
+    },
+    {
+      "key": "lambdaAssignmentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "devTeamId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reportId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reportGroupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reportStartDate",
+      "value": "2026-08-19T00:00:00Z",
+      "type": "string"
+    },
+    {
+      "key": "reportEndDate",
+      "value": "2026-08-20T00:00:00Z",
+      "type": "string"
+    },
+    {
+      "key": "reportDownloadToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "uploadId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "residentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "developerUserId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "testingLocationId",
+      "value": "",
+      "type": "string"
+    }
   ],
   "item": [
     {
@@ -66,37 +185,70 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"\",\n  \"password\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users/authenticate",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "authenticate"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "authenticate"
+              ]
             },
-            "description": "Credentials-based login. Public — no API_KEY required. Returns the user, API key, and the user's active assigned location when present; the post-response script saves `apiKey`, `user.userId`, and `location.locationId` into the active environment."
+            "description": "Authenticates a login account; resident records cannot log in. Returns user and API key, without a resident location."
           }
         },
         {
-          "name": "Create User",
+          "name": "Register developer login",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"\",\n  \"password\": \"\",\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"phone\": \"\",\n  \"organizationId\": 0\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ]
             },
-            "description": "Admin-only. Caller must be an organization admin; new user must be in the same organization."
-          }
+            "description": "Administrator only. Registers a developer login account. Use Residents for monitored people with no credentials."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const result = pm.response.json();",
+                  "if (result.resultCode === 0 && result.user) pm.environment.set('developerUserId', result.user.userId);"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Search Users",
@@ -105,30 +257,56 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/users?firstName=&lastName=&email=",
-              "host": ["{{baseUrl}}"],
-              "path": ["users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users"
+              ],
               "query": [
-                { "key": "firstName", "value": "", "disabled": true },
-                { "key": "lastName", "value": "", "disabled": true },
-                { "key": "email", "value": "", "disabled": true }
+                {
+                  "key": "firstName",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "lastName",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "email",
+                  "value": "",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Search non-deleted users by optional case-insensitive partial first-name, last-name, and email filters. Organization admins can view users in their organization; ordinary users can only receive their own account. Responses use createdAt and deletedAt lifecycle fields; any non-null deletedAt is terminal."
+            "description": "Search non-deleted users by optional case-insensitive partial first-name, last-name, and email filters. Organization admins can view users in their organization; developers can only receive their own account. Responses use createdAt and deletedAt lifecycle fields; any non-null deletedAt is terminal."
           }
         },
         {
           "name": "Update Profile",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"\",\n  \"lastName\": \"\",\n  \"email\": \"\",\n  \"phone\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}"
+              ]
             },
             "description": "Update own profile. All fields optional."
           }
@@ -137,15 +315,26 @@
           "name": "Change Password",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"password\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/users/{{userId}}/password",
-              "host": ["{{baseUrl}}"],
-              "path": ["users", "{{userId}}", "password"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "password"
+              ]
             },
             "description": "Change own password."
           }
@@ -162,8 +351,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/organizations/{{organizationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["organizations", "{{organizationId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "{{organizationId}}"
+              ]
             },
             "description": "Get the caller's non-deleted organization. Responses use createdAt and deletedAt lifecycle fields; any non-null deletedAt is terminal. The organizationId must match the caller's organization."
           }
@@ -172,15 +366,25 @@
           "name": "Update Organization",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"organizationName\": \"\",\n  \"address\": {\n    \"addrStreet1\": \"\",\n    \"addrStreet2\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"countryCode\": \"\",\n    \"postalCode\": \"\",\n    \"timezone\": \"\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/organizations/{{organizationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["organizations", "{{organizationId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "organizations",
+                "{{organizationId}}"
+              ]
             },
             "description": "Admin-only. Replaces the organization name and address; managed identity, hierarchy, admin, createdAt, and deletedAt fields are preserved."
           }
@@ -195,8 +399,16 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": { "raw": "{{baseUrl}}/locations", "host": ["{{baseUrl}}"], "path": ["locations"] },
-            "description": "Admin-only. Returns all non-deleted locations in the caller's organization. Responses use createdAt and deletedAt lifecycle fields; any non-null deletedAt is terminal."
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations"
+              ]
+            },
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         },
         {
@@ -206,20 +418,34 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/locations/{{locationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}"
+              ]
             },
-            "description": "Admin-only. Returns a location in the caller's organization, location.currentState with state and stateDate when available, and all actively assigned users."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types.\nThe location.grantedTeams array lists granted teams (devTeamId and name). Organization administrators see all granted teams; developers see only their own active teams. Operational locations return an empty array."
           }
         },
         {
           "name": "Update Location Current State (lambda)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "PUT",
             "header": [
-              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "LAMBDA_API_KEY",
+                "value": "{{lambdaApiKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -227,50 +453,81 @@
             },
             "url": {
               "raw": "{{baseUrl}}/locations/{{locationId}}/current-state",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}", "current-state"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}",
+                "current-state"
+              ]
             },
-            "description": "Lambda-authenticated. Stores the state for the lambda's assigned location and returns the saved state with its server-generated stateDate."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         },
         {
           "name": "Create Location",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "const json = pm.response.json();",
-                "if (json.location && json.location.locationId) pm.environment.set('locationId', json.location.locationId);"
-              ]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.location && json.location.locationId) pm.environment.set('locationId', json.location.locationId);"
+                ]
+              }
             }
-          }],
+          ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"locationName\": \"\",\n  \"organizationId\": {{organizationId}},\n  \"address\": {\n    \"addrStreet1\": \"\",\n    \"addrStreet2\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"countryCode\": \"\",\n    \"postalCode\": \"\",\n    \"timezone\": \"\"\n  }\n}"
+              "raw": "{\n  \"locationType\": \"OPERATIONAL\",\n  \"locationName\": \"\",\n  \"organizationId\": {{organizationId}},\n  \"address\": {\n    \"addrStreet1\": \"\",\n    \"addrStreet2\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"countryCode\": \"\",\n    \"postalCode\": \"\",\n    \"timezone\": \"\"\n  }\n}"
             },
-            "url": { "raw": "{{baseUrl}}/locations", "host": ["{{baseUrl}}"], "path": ["locations"] },
-            "description": "Admin-only. Creates a location in the caller's organization."
+            "url": {
+              "raw": "{{baseUrl}}/locations",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations"
+              ]
+            },
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         },
         {
           "name": "Update Location",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"locationName\": \"\",\n  \"address\": {\n    \"addrStreet1\": \"\",\n    \"addrStreet2\": \"\",\n    \"city\": \"\",\n    \"state\": \"\",\n    \"countryCode\": \"\",\n    \"postalCode\": \"\",\n    \"timezone\": \"\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/locations/{{locationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}"
+              ]
             },
-            "description": "Admin-only. Replaces location name and address."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         },
         {
@@ -280,10 +537,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/locations/{{locationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}"
+              ]
             },
-            "description": "Admin-only. Permanently marks the location deleted by setting deletedAt, only when it has no active user or device assignments."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         },
         {
@@ -292,11 +554,18 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/locations/{{locationId}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}", "users", "{{userId}}"]
+              "raw": "{{baseUrl}}/locations/{{locationId}}/residents/{{residentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}",
+                "residents",
+                "{{residentId}}"
+              ]
             },
-            "description": "Admin-only. A user may have only one active location assignment."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         },
         {
@@ -305,11 +574,18 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/locations/{{locationId}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}", "users", "{{userId}}"]
+              "raw": "{{baseUrl}}/locations/{{locationId}}/residents/{{residentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}",
+                "residents",
+                "{{residentId}}"
+              ]
             },
-            "description": "Admin-only. Sets the active assignment's endDate; history is retained."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         }
       ]
@@ -324,14 +600,28 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/devices?typeId={{deviceTypeId}}&locationId={{locationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices"
+              ],
               "query": [
-                { "key": "typeId", "value": "{{deviceTypeId}}", "description": "optional device type filter", "disabled": true },
-                { "key": "locationId", "value": "{{locationId}}", "description": "optional active location filter", "disabled": true }
+                {
+                  "key": "typeId",
+                  "value": "{{deviceTypeId}}",
+                  "description": "optional device type filter",
+                  "disabled": true
+                },
+                {
+                  "key": "locationId",
+                  "value": "{{locationId}}",
+                  "description": "optional active location filter",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Admins list devices in their organization. Ordinary users receive only devices assigned to their current location. Each device has compact assignment metadata (locationId, startDate, endDate) when assigned. Assignment location details and current state are omitted."
+            "description": "Administrators manage devices. Developers must select a granted testing location when listing devices. Test designation is immutable."
           }
         },
         {
@@ -341,20 +631,34 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/devices/{{deviceUuid}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices", "{{deviceUuid}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices",
+                "{{deviceUuid}}"
+              ]
             },
-            "description": "Admins may retrieve any device in their organization. Ordinary users may retrieve a device only while it is assigned to their current location. The response includes assignment location details and current state with measuredAt and receivedAt; assignment.deviceUuid is omitted as redundant."
+            "description": "Administrators manage devices. Developers must select a granted testing location when listing devices. Test designation is immutable."
           }
         },
         {
           "name": "Update Device Current State (lambda)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "PUT",
             "header": [
-              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "LAMBDA_API_KEY",
+                "value": "{{lambdaApiKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -362,54 +666,81 @@
             },
             "url": {
               "raw": "{{baseUrl}}/devices/{{deviceUuid}}/current-state",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices", "{{deviceUuid}}", "current-state"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices",
+                "{{deviceUuid}}",
+                "current-state"
+              ]
             },
-            "description": "Lambda-authenticated. Stores state only for a device actively assigned to the lambda's location. measuredAt is supplied by the lambda and receivedAt is set by the server."
+            "description": "Administrators manage devices. Developers must select a granted testing location when listing devices. Test designation is immutable."
           }
         },
         {
           "name": "Create Device",
-          "event": [{
-            "listen": "test",
-            "script": {
-              "type": "text/javascript",
-              "exec": [
-                "const json = pm.response.json();",
-                "if (json.device && json.device.deviceUuid) pm.environment.set('deviceUuid', json.device.deviceUuid);"
-              ]
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const json = pm.response.json();",
+                  "if (json.device && json.device.deviceUuid) pm.environment.set('deviceUuid', json.device.deviceUuid);"
+                ]
+              }
             }
-          }],
+          ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"deviceUuid\": \"{{deviceUuid}}\",\n  \"organizationId\": {{organizationId}},\n  \"typeId\": {{deviceTypeId}},\n  \"deviceName\": \"\",\n  \"serialNumber\": \"\",\n  \"model\": \"\",\n  \"vendor\": \"\",\n  \"manufacturer\": \"\"\n}"
+              "raw": "{\n  \"testing\": false,\n  \"deviceUuid\": \"{{deviceUuid}}\",\n  \"organizationId\": {{organizationId}},\n  \"typeId\": {{deviceTypeId}},\n  \"deviceName\": \"\",\n  \"serialNumber\": \"\",\n  \"model\": \"\",\n  \"vendor\": \"\",\n  \"manufacturer\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/devices",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices"
+              ]
             },
-            "description": "Admin-only. Creates a device in the caller's organization."
+            "description": "Administrators manage devices. Developers must select a granted testing location when listing devices. Test designation is immutable."
           }
         },
         {
           "name": "Update Device",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"typeId\": {{deviceTypeId}},\n  \"deviceName\": \"\",\n  \"serialNumber\": \"\",\n  \"model\": \"\",\n  \"vendor\": \"\",\n  \"manufacturer\": \"\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/devices/{{deviceUuid}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["devices", "{{deviceUuid}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "devices",
+                "{{deviceUuid}}"
+              ]
             },
-            "description": "Admin-only. Updates a device in the caller's organization."
+            "description": "Administrators manage devices. Developers must select a granted testing location when listing devices. Test designation is immutable."
           }
         },
         {
@@ -419,10 +750,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/locations/{{locationId}}/devices/{{deviceUuid}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}", "devices", "{{deviceUuid}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}",
+                "devices",
+                "{{deviceUuid}}"
+              ]
             },
-            "description": "Admin-only. A device may have only one active location assignment."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         },
         {
@@ -432,10 +770,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/locations/{{locationId}}/devices/{{deviceUuid}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["locations", "{{locationId}}", "devices", "{{deviceUuid}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "locations",
+                "{{locationId}}",
+                "devices",
+                "{{deviceUuid}}"
+              ]
             },
-            "description": "Admin-only. Sets the assignment endDate and retains its history."
+            "description": "Administrators manage locations and resident assignments. Developers can read only granted testing locations. Real residents/devices and synthetic residents/test devices cannot cross environment types."
           }
         }
       ]
@@ -446,19 +791,43 @@
         {
           "name": "Start Run (lambda)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" }
+              {
+                "key": "LAMBDA_API_KEY",
+                "value": "{{lambdaApiKey}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/start?invocationToken={{invocationToken}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["start"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "start"
+              ],
               "query": [
-                { "key": "invocationToken", "value": "{{invocationToken}}", "description": "invocation token supplied in the lambda input" },
-                { "key": "awsRequestId", "value": "{{awsRequestId}}", "description": "Lambda context aws_request_id", "disabled": true },
-                { "key": "logStreamName", "value": "{{logStreamName}}", "description": "Lambda context log_stream_name", "disabled": true }
+                {
+                  "key": "invocationToken",
+                  "value": "{{invocationToken}}",
+                  "description": "invocation token supplied in the lambda input"
+                },
+                {
+                  "key": "awsRequestId",
+                  "value": "{{awsRequestId}}",
+                  "description": "Lambda context aws_request_id",
+                  "disabled": true
+                },
+                {
+                  "key": "logStreamName",
+                  "value": "{{logStreamName}}",
+                  "description": "Lambda context log_stream_name",
+                  "disabled": true
+                }
               ]
             },
             "description": "Lambda-authenticated. Marks the matching current run as started. Continue execution only when resultCode is 0. Enable the AWS parameters for ASYNC Lambda invocations."
@@ -472,17 +841,33 @@
         {
           "name": "Get Variable (lambda)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [
-              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" }
+              {
+                "key": "LAMBDA_API_KEY",
+                "value": "{{lambdaApiKey}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/variables/{{variableName}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["variables", "{{variableName}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "variables",
+                "{{variableName}}"
+              ],
               "query": [
-                { "key": "shared", "value": "true", "description": "use location-shared scope", "disabled": true }
+                {
+                  "key": "shared",
+                  "value": "true",
+                  "description": "use location-shared scope",
+                  "disabled": true
+                }
               ]
             },
             "description": "Lambda-authenticated. Returns the current-generation assignment-private binary value, or HTTP 204 when absent. Reset invalidates the private generation. Enable shared to use the unaffected location scope."
@@ -491,23 +876,47 @@
         {
           "name": "Put Variable (lambda)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "PUT",
             "header": [
-              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/octet-stream", "type": "text" }
+              {
+                "key": "LAMBDA_API_KEY",
+                "value": "{{lambdaApiKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "example value",
-              "options": { "raw": { "language": "text" } }
+              "options": {
+                "raw": {
+                  "language": "text"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/variables/{{variableName}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["variables", "{{variableName}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "variables",
+                "{{variableName}}"
+              ],
               "query": [
-                { "key": "shared", "value": "true", "description": "use location-shared scope", "disabled": true }
+                {
+                  "key": "shared",
+                  "value": "true",
+                  "description": "use location-shared scope",
+                  "disabled": true
+                }
               ]
             },
             "description": "Lambda-authenticated. Stores arbitrary bytes in the current assignment-private generation; stale lambda keys are rejected after reset. Enable shared to use the unaffected location scope."
@@ -516,17 +925,33 @@
         {
           "name": "Delete Variable (lambda)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "DELETE",
             "header": [
-              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" }
+              {
+                "key": "LAMBDA_API_KEY",
+                "value": "{{lambdaApiKey}}",
+                "type": "text"
+              }
             ],
             "url": {
               "raw": "{{baseUrl}}/variables/{{variableName}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["variables", "{{variableName}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "variables",
+                "{{variableName}}"
+              ],
               "query": [
-                { "key": "shared", "value": "true", "description": "use location-shared scope", "disabled": true }
+                {
+                  "key": "shared",
+                  "value": "true",
+                  "description": "use location-shared scope",
+                  "disabled": true
+                }
               ]
             },
             "description": "Lambda-authenticated. Deletes an assignment-private variable. Enable shared to delete from the lambda's location scope."
@@ -540,21 +965,39 @@
         {
           "name": "Create Dangerous-State Alert (lambda)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "LAMBDA_API_KEY", "value": "{{lambdaApiKey}}", "type": "text" },
-              { "key": "Content-Type", "value": "application/json", "type": "text" }
+              {
+                "key": "LAMBDA_API_KEY",
+                "value": "{{lambdaApiKey}}",
+                "type": "text"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"idempotencyKey\": \"{{lambdaAssignmentId}}:demo-event:danger-transition-v1\",\n  \"ruleId\": \"danger-transition-v1\",\n  \"severity\": \"CRITICAL\",\n  \"locationId\": {{locationId}},\n  \"occurredAt\": 1750000000000,\n  \"runId\": 1750000001000,\n  \"eventKey\": \"demo-event\",\n  \"reasons\": [\n    {\n      \"resourceType\": \"DEVICE\",\n      \"resourceId\": \"{{deviceUuid}}\",\n      \"field\": \"alarm\",\n      \"previousValue\": false,\n      \"newValue\": true\n    }\n  ]\n}",
-              "options": { "raw": { "language": "json" } }
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
             },
             "url": {
               "raw": "{{baseUrl}}/alerts",
-              "host": ["{{baseUrl}}"],
-              "path": ["alerts"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "alerts"
+              ]
             },
             "description": "Lambda-authenticated. Creates an OPEN alert after authorizing all referenced resources. Repeating the same idempotency key and payload returns the existing alert with created=false."
           }
@@ -571,9 +1014,19 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas?devTeamId={{devTeamId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas"],
-              "query": [{ "key": "devTeamId", "value": "{{devTeamId}}", "description": "optional filter" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas"
+              ],
+              "query": [
+                {
+                  "key": "devTeamId",
+                  "value": "{{devTeamId}}",
+                  "description": "optional filter"
+                }
+              ]
             }
           }
         },
@@ -595,15 +1048,24 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"lambdaName\": \"{{lambdaName}}\",\n  \"devTeamId\": {{devTeamId}},\n  \"description\": \"\",\n  \"metadata\": {}\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/lambdas",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas"
+              ]
             }
           }
         },
@@ -611,15 +1073,24 @@
           "name": "Update Lambda",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"lambdaId\": {{lambdaId}},\n  \"description\": \"\",\n  \"metadata\": {}\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/lambdas",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas"
+              ]
             }
           }
         },
@@ -630,12 +1101,29 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas/versions?lambdaId={{lambdaId}}&status=&version=",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "versions"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "versions"
+              ],
               "query": [
-                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" },
-                { "key": "status", "value": "", "description": "optional, repeatable" },
-                { "key": "version", "value": "", "description": "optional" }
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                },
+                {
+                  "key": "status",
+                  "value": "",
+                  "description": "optional, repeatable"
+                },
+                {
+                  "key": "version",
+                  "value": "",
+                  "description": "optional"
+                }
               ]
             },
             "description": "List lambda versions. The `trigger` bitmask uses 1 = schedule, 2 = location event, and 4 = device event. Scheduled executions run through the separate `asyncFunction` lane."
@@ -645,17 +1133,31 @@
           "name": "Create Lambda Version",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"bump\": \"PATCH\",\n  \"whatsnew\": \"\",\n  \"schedules\": {},\n  \"trigger\": 2,\n  \"dataStreamAddresses\": []\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/lambdas/versions?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "versions"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "versions"
+              ],
               "query": [
-                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                }
               ]
             },
             "description": "Create the next lambda version. `bump` must be `MAJOR`, `MINOR`, or `PATCH`; the server derives the semantic version number. `trigger` configures trigger event types."
@@ -668,10 +1170,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas/versions/promote?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "versions", "promote"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "versions",
+                "promote"
+              ],
               "query": [
-                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                }
               ]
             },
             "description": "Promote the version under test to production and retain the previous production version as the rollback fallback."
@@ -684,10 +1196,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas/versions/discard?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "versions", "discard"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "versions",
+                "discard"
+              ],
               "query": [
-                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                }
               ]
             },
             "description": "Discard the development version currently under test."
@@ -700,10 +1222,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas/versions/rollback?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "versions", "rollback"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "versions",
+                "rollback"
+              ],
               "query": [
-                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                }
               ]
             },
             "description": "Archive the current production version and restore the fallback version to production."
@@ -716,9 +1248,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas/versions?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "versions"],
-              "query": [{ "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "versions"
+              ],
+              "query": [
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                }
+              ]
             }
           }
         }
@@ -734,8 +1277,13 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas/python-image-tags",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "python-image-tags"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "python-image-tags"
+              ]
             },
             "description": "Returns available AWS Lambda Python image tags, including architecture, in `result`."
           }
@@ -758,15 +1306,38 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/zip" }],
-            "body": { "mode": "file", "file": { "src": "" } },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/zip"
+              }
+            ],
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/lambdas/code-uploads?lambdaId={{lambdaId}}&buildTarget={{buildTarget}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "code-uploads"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "code-uploads"
+              ],
               "query": [
-                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" },
-                { "key": "buildTarget", "value": "{{buildTarget}}", "description": "required; Python version and processor architecture, such as 3.14-arm64; select a value returned by Get Available Python Image Tags" }
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                },
+                {
+                  "key": "buildTarget",
+                  "value": "{{buildTarget}}",
+                  "description": "required; Python version and processor architecture, such as 3.14-arm64; select a value returned by Get Available Python Image Tags"
+                }
               ]
             },
             "description": "Body is a raw zip or tar archive (Content-Type application/zip or application/x-tar). `buildTarget` combines the Python version and processor architecture in `<python-version>-<architecture>` form and must be one of the values returned by Get Available Python Image Tags. Response `requestId` is saved to the `uploadId` variable."
@@ -793,10 +1364,20 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambdas/code-uploads/{{uploadId}}?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambdas", "code-uploads", "{{uploadId}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambdas",
+                "code-uploads",
+                "{{uploadId}}"
+              ],
               "query": [
-                { "key": "lambdaId", "value": "{{lambdaId}}", "description": "required" }
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required"
+                }
               ]
             },
             "description": "Returns `result.status` (`CREATED`, `IN_PROGRESS`, `COMPLETED`, or `FAILED`) and an optional `result.message`. Poll while the status is `CREATED` or `IN_PROGRESS`; `COMPLETED` and `FAILED` are terminal."
@@ -814,10 +1395,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/teams?userId={{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["teams"],
-              "query": [{ "key": "userId", "value": "{{userId}}", "description": "optional" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "{{userId}}",
+                  "description": "optional"
+                }
+              ]
+            },
+            "description": "Organization administrators create teams, designate owners, manage members and testing grants. Developers can read only their active teams. Team creation provisions a default testing location."
           }
         },
         {
@@ -827,9 +1419,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/teams/{{devTeamId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["teams", "{{devTeamId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{devTeamId}}"
+              ]
+            },
+            "description": "Organization administrators create teams, designate owners, manage members and testing grants. Developers can read only their active teams. Team creation provisions a default testing location.\nThe team.testingLocations array lists all current testing-location grants. testingLocationId identifies only the provisioned default and may have been revoked."
           }
         },
         {
@@ -844,21 +1442,43 @@
                   "if (json.team) pm.collectionVariables.set('devTeamId', json.team.devTeamId);"
                 ]
               }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const result = pm.response.json();",
+                  "if (result.resultCode === 0 && result.team) {",
+                  "  pm.environment.set('devTeamId', result.team.devTeamId);",
+                  "  pm.environment.set('testingLocationId', result.team.testingLocationId);",
+                  "}"
+                ]
+              }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"API Dev Team\",\n  \"description\": \"Created through the Dev Teams API\"\n}"
+              "raw": "{\n  \"name\": \"API Dev Team\",\n  \"description\": \"Created through the Dev Teams API\",\n  \"ownerUserId\": {{developerUserId}}\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/teams",
-              "host": ["{{baseUrl}}"],
-              "path": ["teams"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams"
+              ]
             },
-            "description": "The authenticated caller becomes owner and an active member."
+            "description": "Organization administrators create teams, designate owners, manage members and testing grants. Developers can read only their active teams. Team creation provisions a default testing location."
           }
         },
         {
@@ -868,10 +1488,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/teams/{{devTeamId}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["teams", "{{devTeamId}}", "users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{devTeamId}}",
+                "users",
+                "{{userId}}"
+              ]
             },
-            "description": "Owner-only. Adds the selected user to the team."
+            "description": "Organization administrators create teams, designate owners, manage members and testing grants. Developers can read only their active teams. Team creation provisions a default testing location."
           }
         },
         {
@@ -881,11 +1508,81 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/teams/{{devTeamId}}/users/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["teams", "{{devTeamId}}", "users", "{{userId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{devTeamId}}",
+                "users",
+                "{{userId}}"
+              ]
             },
-            "description": "Owner-only. The owner cannot remove themselves."
+            "description": "Organization administrators create teams, designate owners, manage members and testing grants. Developers can read only their active teams. Team creation provisions a default testing location."
           }
+        },
+        {
+          "name": "Transfer team ownership",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{devTeamId}}/owner/{{developerUserId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{devTeamId}}",
+                "owner",
+                "{{developerUserId}}"
+              ]
+            },
+            "description": "Organization administrator only."
+          },
+          "response": []
+        },
+        {
+          "name": "Grant testing location",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{devTeamId}}/testing-locations/{{testingLocationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{devTeamId}}",
+                "testing-locations",
+                "{{testingLocationId}}"
+              ]
+            },
+            "description": "Organization administrator only."
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke testing location",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/teams/{{devTeamId}}/testing-locations/{{testingLocationId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "teams",
+                "{{devTeamId}}",
+                "testing-locations",
+                "{{testingLocationId}}"
+              ]
+            },
+            "description": "Organization administrator only."
+          },
+          "response": []
         }
       ]
     },
@@ -899,10 +1596,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments"],
-              "query": [{ "key": "lambdaId", "value": "{{lambdaId}}", "description": "required; omit locationId" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments"
+              ],
+              "query": [
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required; omit locationId"
+                }
+              ]
+            },
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
@@ -912,10 +1620,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments?locationId={{locationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments"],
-              "query": [{ "key": "locationId", "value": "{{locationId}}", "description": "required; omit lambdaId" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments"
+              ],
+              "query": [
+                {
+                  "key": "locationId",
+                  "value": "{{locationId}}",
+                  "description": "required; omit lambdaId"
+                }
+              ]
+            },
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
@@ -934,16 +1653,26 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"lambdaId\": {{lambdaId}},\n  \"locationId\": {{locationId}},\n  \"testing\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments"
+              ]
+            },
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
@@ -953,9 +1682,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments", "{{lambdaAssignmentId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments",
+                "{{lambdaAssignmentId}}"
+              ]
+            },
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
@@ -977,27 +1712,43 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}/lambda-api-key",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments", "{{lambdaAssignmentId}}", "lambda-api-key"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments",
+                "{{lambdaAssignmentId}}",
+                "lambda-api-key"
+              ]
             },
-            "description": "Generates a time-limited LAMBDA_API_KEY. Allowed for the location's assigned user or the organization's admin."
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
           "name": "Update Lambda Assignment",
           "request": {
             "method": "PUT",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"enabled\": true\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments", "{{lambdaAssignmentId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments",
+                "{{lambdaAssignmentId}}"
+              ]
             },
-            "description": "Set enabled to true to enable the assignment or false to end it immediately."
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
@@ -1007,9 +1758,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments/{{lambdaAssignmentId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments", "{{lambdaAssignmentId}}"]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments",
+                "{{lambdaAssignmentId}}"
+              ]
+            },
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
@@ -1019,10 +1776,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments?lambdaId={{lambdaId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments"],
-              "query": [{ "key": "lambdaId", "value": "{{lambdaId}}", "description": "required; omit locationId" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments"
+              ],
+              "query": [
+                {
+                  "key": "lambdaId",
+                  "value": "{{lambdaId}}",
+                  "description": "required; omit locationId"
+                }
+              ]
+            },
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         },
         {
@@ -1032,10 +1800,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/lambda-assignments?locationId={{locationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["lambda-assignments"],
-              "query": [{ "key": "locationId", "value": "{{locationId}}", "description": "required; omit lambdaId" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "lambda-assignments"
+              ],
+              "query": [
+                {
+                  "key": "locationId",
+                  "value": "{{locationId}}",
+                  "description": "required; omit lambdaId"
+                }
+              ]
+            },
+            "description": "Administrators manage assignments in their organization. Developers require testing-location access and lambda-team membership. Operational locations reject test versions. Bulk operations remain within caller scope."
           }
         }
       ]
@@ -1050,10 +1829,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reports/groups/{{organizationId}}?all=true",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "groups", "{{organizationId}}"],
-              "query": [{ "key": "all", "value": "true" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "groups",
+                "{{organizationId}}"
+              ],
+              "query": [
+                {
+                  "key": "all",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Organization administrator only. Organization defaults to caller organization. Operational reports exclude testing data."
           }
         },
         {
@@ -1063,11 +1854,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reports/groups/{{organizationId}}?reportGroupId={{reportGroupId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "groups", "{{organizationId}}"],
-              "query": [{ "key": "reportGroupId", "value": "{{reportGroupId}}" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "groups",
+                "{{organizationId}}"
+              ],
+              "query": [
+                {
+                  "key": "reportGroupId",
+                  "value": "{{reportGroupId}}"
+                }
+              ]
             },
-            "description": "Requires an admin of the target organization or an ancestor. Existing inherited assignments are left unchanged; a new assignment removes descendant assignments for the same group."
+            "description": "Organization administrator only. Organization defaults to caller organization. Operational reports exclude testing data."
           }
         },
         {
@@ -1077,10 +1879,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reports/reports?organizationId={{organizationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "reports"],
-              "query": [{ "key": "organizationId", "value": "{{organizationId}}" }]
-            }
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "reports"
+              ],
+              "query": [
+                {
+                  "key": "organizationId",
+                  "value": "{{organizationId}}"
+                }
+              ]
+            },
+            "description": "Organization administrator only. Organization defaults to caller organization. Operational reports exclude testing data."
           }
         },
         {
@@ -1090,14 +1903,25 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reports/generate?reportId={{reportId}}&organizationId={{organizationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "generate"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "generate"
+              ],
               "query": [
-                { "key": "reportId", "value": "{{reportId}}" },
-                { "key": "organizationId", "value": "{{organizationId}}" }
+                {
+                  "key": "reportId",
+                  "value": "{{reportId}}"
+                },
+                {
+                  "key": "organizationId",
+                  "value": "{{organizationId}}"
+                }
               ]
             },
-            "description": "Runs synchronously. ZIPs up to 64,000 bytes are stored in report_execution_history.output; larger ZIPs are uploaded to the configured reports S3 bucket under the execution object ID."
+            "description": "Organization administrator only. Organization defaults to caller organization. Operational reports exclude testing data."
           }
         },
         {
@@ -1107,28 +1931,57 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reports/data?startDate={{reportStartDate}}&endDate={{reportEndDate}}&reportId={{reportId}}&reportGroupId={{reportGroupId}}&organizationId={{organizationId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "data"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "data"
+              ],
               "query": [
-                { "key": "startDate", "value": "{{reportStartDate}}" },
-                { "key": "endDate", "value": "{{reportEndDate}}" },
-                { "key": "reportId", "value": "{{reportId}}" },
-                { "key": "reportGroupId", "value": "{{reportGroupId}}" },
-                { "key": "organizationId", "value": "{{organizationId}}" }
+                {
+                  "key": "startDate",
+                  "value": "{{reportStartDate}}"
+                },
+                {
+                  "key": "endDate",
+                  "value": "{{reportEndDate}}"
+                },
+                {
+                  "key": "reportId",
+                  "value": "{{reportId}}"
+                },
+                {
+                  "key": "reportGroupId",
+                  "value": "{{reportGroupId}}"
+                },
+                {
+                  "key": "organizationId",
+                  "value": "{{organizationId}}"
+                }
               ]
-            }
+            },
+            "description": "Organization administrator only. Organization defaults to caller organization. Operational reports exclude testing data."
           }
         },
         {
           "name": "Download Report Output",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reports/data/{{reportDownloadToken}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "data", "{{reportDownloadToken}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "data",
+                "{{reportDownloadToken}}"
+              ]
             },
             "description": "Public bearer route. Use the JWT portion of a summary execution's url field; the raw internal objectId is not accepted."
           }
@@ -1136,17 +1989,193 @@
         {
           "name": "Download Report Output as JSON",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/reports/data/{{reportDownloadToken}}?responseFormat=1",
-              "host": ["{{baseUrl}}"],
-              "path": ["reports", "data", "{{reportDownloadToken}}"],
-              "query": [{ "key": "responseFormat", "value": "1" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "reports",
+                "data",
+                "{{reportDownloadToken}}"
+              ],
+              "query": [
+                {
+                  "key": "responseFormat",
+                  "value": "1"
+                }
+              ]
             },
             "description": "Verifies the signed report JWT, unpacks the CSV, and returns JSON."
           }
+        }
+      ]
+    },
+    {
+      "name": "Residents",
+      "item": [
+        {
+          "name": "List residents",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/residents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "residents"
+              ]
+            },
+            "description": "Organization administrator only."
+          },
+          "response": []
+        },
+        {
+          "name": "Register resident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/residents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "residents"
+              ]
+            },
+            "description": "Organization administrator only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Resident\",\n  \"synthetic\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const result = pm.response.json();",
+                  "if (result.resultCode === 0 && result.resident) pm.environment.set('residentId', result.resident.residentId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register synthetic test resident",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/residents",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "residents"
+              ]
+            },
+            "description": "Organization administrator only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Synthetic\",\n  \"lastName\": \"Resident\",\n  \"synthetic\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const result = pm.response.json();",
+                  "if (result.resultCode === 0 && result.resident) pm.environment.set('residentId', result.resident.residentId);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get resident",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/residents/{{residentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "residents",
+                "{{residentId}}"
+              ]
+            },
+            "description": "Organization administrator only."
+          },
+          "response": []
+        },
+        {
+          "name": "Update resident",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/residents/{{residentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "residents",
+                "{{residentId}}"
+              ]
+            },
+            "description": "Organization administrator only.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Resident\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "response": []
         }
       ]
     }

@@ -1,6 +1,7 @@
 package dev.olegz.vf.registry.domain.device;
 
 public class Device {
+    public boolean testing;
     public String deviceUuid;
     public int organizationId;
     public int typeId;

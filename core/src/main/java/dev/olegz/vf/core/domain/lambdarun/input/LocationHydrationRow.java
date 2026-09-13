@@ -7,6 +7,5 @@ public class LocationHydrationRow {
     public String locationCurrentState;
     public String deviceUuid;
     public Map<String, Object> deviceCurrentState;
-    public Integer userId;
-    public Byte locationAccess;
+    public Integer residentId;
 }

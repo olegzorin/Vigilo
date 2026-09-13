@@ -40,10 +40,6 @@ public class UserDaoImpl implements UserDao {
         return mapper.selectUsers(organizationId, userId, firstName, lastName, email);
     }
 
-    @Override
-    public List<User> getUsersByLocation(int locationId) {
-        return mapper.selectUsersByLocation(locationId);
-    }
 
     @Override
     public User getUserByUsername(String username) {

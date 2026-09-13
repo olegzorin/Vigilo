@@ -44,7 +44,7 @@
             <result property="lambdaName" column="name"/>
             <result property="devTeamId" column="dev_team_id"/>
         </association>
-        <association property="lambdaVersion" javaType="dev.olegz.vf.core.domain.lambdaversion.LambdaVersion">
+        <association property="lambdaVersion" javaType="dev.olegz.vf.core.domain.lambdaversion.LambdaVersion" notNullColumn="lambda_version_id">
             <id property="lambdaVersionId" column="lambda_version_id"/>
             <result property="status" column="lambda_version_status"/>
             <result property="published" column="lambda_version_published"/>
@@ -75,12 +75,8 @@
     </sql>
 
     <insert id="insertLambdaAssignment" useGeneratedKeys="true" keyProperty="lambdaAssignmentId">
-        INSERT INTO lambda_assignments
-        SET lambda_id = #{lambdaId},
-            location_id = #{locationId},
-            is_testing = #{testing},
-            assignment_date = #{assignmentDate},
-            end_date = #{endDate}
+        INSERT INTO lambda_assignments (lambda_id, location_id, is_testing, assignment_date, end_date)
+        VALUES (#{lambdaId}, #{locationId}, #{testing}, #{assignmentDate}, #{endDate})
     </insert>
 
     <update id="updateLambdaAssignment">
@@ -130,9 +126,9 @@
     <select id="selectLambdaAssignments" resultMap="lambdaAssignmentResultMap" fetchSize="10">
         SELECT <include refid="lambdaAssignmentCols"/>
         FROM lambda_assignments i
-        JOIN lambda_active_versions v ON v.lambda_id = i.lambda_id
+        LEFT JOIN lambda_active_versions v ON v.lambda_id = i.lambda_id
             AND (NOT i.is_testing AND v.is_public OR i.is_testing AND v.latest_status = 1)
-        JOIN lambda_versions h ON h.lambda_version_id = v.lambda_version_id
+        LEFT JOIN lambda_versions h ON h.lambda_version_id = v.lambda_version_id
         JOIN lambdas b ON b.lambda_id = i.lambda_id
         WHERE i.deleted_at IS NULL
         <if test="lambdaId != null">AND i.lambda_id = #{lambdaId}</if>
@@ -141,23 +137,8 @@
     </select>
 
     <insert id="insertLambdaAssignmentRun">
-        INSERT INTO lambda_latest_runs
-        SET lambda_assignment_id = #{lambdaAssignmentId},
-            invocation_lane = #{invocationLane},
-            lambda_version_id = #{lambdaVersionId},
-            function_name = #{functionName},
-            trigger_count = #{triggerCount},
-            pending_count = #{pendingCount},
-            next_input_number = #{nextInputNumber},
-            run_id = #{runId},
-            prev_run_id = #{prevRunId},
-            invocation_gen = #{invocationGen},
-            is_started = #{started},
-            aws_request_id = #{awsRequestId},
-            aws_log_stream = #{awsLogStream},
-            triggered_at = #{triggeredAt},
-            expiry_date = #{expiryDate},
-            aws_log_end_date = #{awsLogEndDate}
+        INSERT INTO lambda_latest_runs (lambda_assignment_id, invocation_lane, lambda_version_id, function_name, trigger_count, pending_count, next_input_number, run_id, prev_run_id, invocation_gen, is_started, aws_request_id, aws_log_stream, triggered_at, expiry_date, aws_log_end_date)
+        VALUES (#{lambdaAssignmentId}, #{invocationLane}, #{lambdaVersionId}, #{functionName}, #{triggerCount}, #{pendingCount}, #{nextInputNumber}, #{runId}, #{prevRunId}, #{invocationGen}, #{started}, #{awsRequestId}, #{awsLogStream}, #{triggeredAt}, #{expiryDate}, #{awsLogEndDate})
     </insert>
 
     <update id="updateLambdaAssignmentRunsReset">

@@ -46,23 +46,46 @@ class DevTeamDaoTest {
     private final DevTeamMapper mapper;
     private final LambdaDao lambdaDao;
     private final UserDao userDao;
+    private final dev.olegz.vf.registry.dao.OrganizationDao organizations;
+    private final dev.olegz.vf.registry.dao.LocationDao locations;
+    private int organizationId;
 
     @Autowired
-    DevTeamDaoTest(DevTeamDao devTeamDao, DevTeamMapper mapper, LambdaDao lambdaDao, UserDao userDao) {
+    DevTeamDaoTest(DevTeamDao devTeamDao, DevTeamMapper mapper, LambdaDao lambdaDao, UserDao userDao, dev.olegz.vf.registry.dao.OrganizationDao organizations, dev.olegz.vf.registry.dao.LocationDao locations) {
         this.devTeamDao = devTeamDao;
         this.mapper = mapper;
         this.lambdaDao = lambdaDao;
         this.userDao = userDao;
+        this.organizations = organizations;
+        this.locations = locations;
     }
 
     private int insertUser() {
+        if (organizationId == 0) {
+            var org = new dev.olegz.vf.registry.domain.account.Organization();
+            org.organizationName = "Test";
+            organizations.insertOrganization(org);
+            organizationId = org.organizationId;
+        }
         User user = new User();
+        user.organizationId = organizationId;
         userDao.insertUser(user);
         return user.userId;
     }
 
+    private void prepareTeam(DevTeam team) {
+        team.organizationId = organizationId;
+        var location = new dev.olegz.vf.registry.domain.account.Location();
+        location.organizationId = organizationId;
+        location.locationType = dev.olegz.vf.registry.domain.account.LocationType.TESTING;
+        location.locationName = "Testing";
+        locations.insertLocation(location);
+        team.testingLocationId = location.locationId;
+    }
+
     private int insertTeam(String name, String description) {
         DevTeam team = new DevTeam(insertUser(), name, description);
+        prepareTeam(team);
         mapper.insertDevTeam(team);
         return team.devTeamId;
     }

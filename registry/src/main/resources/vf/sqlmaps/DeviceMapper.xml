@@ -8,6 +8,7 @@
     <resultMap id="deviceResultMap" type="dev.olegz.vf.registry.domain.device.Device">
         <id property="deviceUuid" column="device_uuid"/>
         <result property="organizationId" column="organization_id"/>
+        <result property="testing" column="testing"/>
         <result property="typeId" column="type_id"/>
         <result property="deviceName" column="device_name"/>
         <result property="serialNumber" column="serial_number"/>
@@ -41,6 +42,7 @@
             <result property="createdAt" column="location_created_at"/>
             <result property="deletedAt" column="location_deleted_at"/>
             <result property="organizationId" column="location_organization_id"/>
+            <result property="locationType" column="location_type"/>
             <association property="address" javaType="dev.olegz.vf.registry.domain.account.Address">
                 <result property="addrStreet1" column="addr_street1"/>
                 <result property="addrStreet2" column="addr_street2"/>
@@ -69,6 +71,7 @@
             <result property="createdAt" column="location_created_at"/>
             <result property="deletedAt" column="location_deleted_at"/>
             <result property="organizationId" column="location_organization_id"/>
+            <result property="locationType" column="location_type"/>
             <association property="address" javaType="dev.olegz.vf.registry.domain.account.Address">
                 <result property="addrStreet1" column="addr_street1"/>
                 <result property="addrStreet2" column="addr_street2"/>
@@ -95,7 +98,7 @@
     </resultMap>
 
     <sql id="deviceColumns">
-        d.device_uuid, d.organization_id, d.type_id, d.device_name, d.serial_number,
+        d.device_uuid, d.testing, d.organization_id, d.type_id, d.device_name, d.serial_number,
         d.model, d.vendor, d.manufacturer
     </sql>
 
@@ -107,16 +110,16 @@
     <sql id="deviceLocationColumns">
         <include refid="deviceAssignmentColumns"/>,
         l.location_name, l.created_at AS location_created_at, l.deleted_at AS location_deleted_at,
-        l.organization_id AS location_organization_id,
+        l.organization_id AS location_organization_id, l.location_type,
         l.addr_street1, l.addr_street2, l.city, l.state, l.country_code, l.postal_code, l.timezone
     </sql>
 
     <insert id="insertDevice">
         INSERT INTO devices (
-            device_uuid, organization_id, type_id, device_name, serial_number,
+            device_uuid, testing, organization_id, type_id, device_name, serial_number,
             model, vendor, manufacturer)
         VALUES (
-            #{deviceUuid}, #{organizationId}, #{typeId}, #{deviceName}, #{serialNumber},
+            #{deviceUuid}, #{testing}, #{organizationId}, #{typeId}, #{deviceName}, #{serialNumber},
             #{model}, #{vendor}, #{manufacturer})
     </insert>
 

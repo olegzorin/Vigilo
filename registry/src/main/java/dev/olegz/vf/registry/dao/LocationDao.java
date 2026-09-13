@@ -37,11 +37,6 @@ public interface LocationDao {
      */
     List<Location> getLocationsByOrganization(int organizationId);
 
-    /**
-     * @return the active location currently assigned to the user in the organization, or
-     *         {@code null} if the user has no active assignment.
-     */
-    Location getLocationByUser(User user);
 
     /**
      * Update the mutable fields of a non-deleted location.

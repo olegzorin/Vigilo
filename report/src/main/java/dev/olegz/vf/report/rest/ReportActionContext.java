@@ -32,12 +32,4 @@ public final class ReportActionContext {
         }
     }
 
-    public void requireAdminOfOrganizationOrAncestor(int organizationId) {
-        Organization organization = organizationDao.getOrganization(organizationId);
-        while (organization != null) {
-            if (organization.adminUserId != null && organization.adminUserId == user().userId) return;
-            organization = organization.parentId == null ? null : organizationDao.getOrganization(organization.parentId);
-        }
-        throw new AccessDeniedException("Administrator privileges required for organization " + organizationId);
-    }
 }

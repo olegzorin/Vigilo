@@ -86,10 +86,6 @@ class UserServiceImplUpdateProfileTest {
             throw new UnsupportedOperationException();
         }
 
-        @Override
-        public List<User> getUsersByLocation(int locationId) {
-            throw new UnsupportedOperationException();
-        }
 
         @Override
         public boolean updateUser(User user) {

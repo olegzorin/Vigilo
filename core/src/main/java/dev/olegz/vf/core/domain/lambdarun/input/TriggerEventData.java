@@ -18,7 +18,7 @@ public class TriggerEventData {
     // From DB
     public LocationSnapshot location;
     public List<LocationDeviceSnapshot> locationDevices;
-    public List<LocationUserSnapshot> locationUsers;
+    public List<LocationResidentSnapshot> locationResidents;
     public List<String> scheduleIds;
 
 }

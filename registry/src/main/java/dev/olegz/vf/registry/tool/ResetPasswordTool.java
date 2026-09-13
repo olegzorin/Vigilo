@@ -24,8 +24,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Identify the user by {@code --userId} or {@code --username} (exactly one). Run it via the
  * {@code reset-password} Maven profile (see {@code registry/pom.xml}):
  * <pre>
- *   mvn -q -pl registry -am -Preset-password exec:java -Dexec.args="--username jane"
- *   mvn -q -pl registry -am -Preset-password exec:java -Dexec.args="--userId 57 --password s3cret"
+ *   mvn -q -pl registry -Preset-password compile exec:java -Dexec.args="--username jane"
+ *   mvn -q -pl registry -Preset-password compile exec:java -Dexec.args="--userId 57 --password s3cret"
  * </pre>
  * The new password may be supplied with {@code --password}; when omitted it is read from the
  * {@code VF_ADMIN_PASSWORD} environment variable, and failing that prompted for on the console

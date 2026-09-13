@@ -3,6 +3,8 @@ package dev.olegz.vf.api.team;
 import dev.olegz.vf.core.domain.lambdaversion.DevTeam;
 
 public class ApiDevTeamSummary {
+    public final int organizationId;
+    public final int testingLocationId;
     public final int devTeamId;
     public final int ownerUserId;
     public final String name;
@@ -11,6 +13,8 @@ public class ApiDevTeamSummary {
     public final int lambdasCount;
 
     public ApiDevTeamSummary(DevTeam devTeam) {
+        this.organizationId = devTeam.organizationId;
+        this.testingLocationId = devTeam.testingLocationId;
         this.devTeamId = devTeam.devTeamId;
         this.ownerUserId = devTeam.ownerUserId;
         this.name = devTeam.name;

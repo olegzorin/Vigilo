@@ -3,6 +3,7 @@ package dev.olegz.vf.registry.domain.account;
 import dev.olegz.vf.common.Datetime;
 
 public class Location {
+    public LocationType locationType = LocationType.OPERATIONAL;
     public int locationId;
     public String locationName;
     public Datetime createdAt;

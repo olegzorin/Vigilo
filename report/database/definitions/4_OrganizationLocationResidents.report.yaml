@@ -1,9 +1,9 @@
 id: 4
-name: OrganizationLocationUsers
+name: OrganizationLocationResidents
 type: summary
-displayName: Organization Location Users
-description: The list of users and their emails in each location. Only shows users who have location category 1 and 2 (“I live here” and “Family/Friend”)
-query: queries/4_OrganizationLocationUsers.sql
+displayName: Organization Location Residents
+description: The list of residents and their emails in each location. Only shows residents who have location category 1 and 2 (“I live here” and “Family/Friend”)
+query: queries/4_OrganizationLocationResidents.sql
 parameters:
   - { name: organizationId, type: integer, required: true, displayName: Organization Id }
 fields:

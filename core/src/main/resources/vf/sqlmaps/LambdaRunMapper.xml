@@ -90,7 +90,7 @@
 
     <select id="selectTriggerLocationMetadata"
             resultType="dev.olegz.vf.core.domain.lambdarun.input.LocationMetadataSnapshot">
-        SELECT l.location_name AS name,
+        SELECT l.location_name AS name, l.location_type,
             COALESCE(l.timezone, o.timezone) AS timezone,
             l.country_code AS country,
             l.city,
@@ -126,8 +126,7 @@
         <result property="deviceUuid" column="device_uuid"/>
         <result property="deviceCurrentState" column="device_current_state"
                 typeHandler="dev.olegz.vf.registry.dao.handlers.ObjectMapTypeHandler"/>
-        <result property="userId" column="user_id"/>
-        <result property="locationAccess" column="location_access"/>
+        <result property="residentId" column="resident_id"/>
     </resultMap>
 
     <resultMap id="varValueMap" type="dev.olegz.vf.core.domain.lambdaassignment.LambdaVariable">
@@ -143,8 +142,7 @@
                 lcs.current_state AS location_current_state,
                 NULL::varchar AS device_uuid,
                 NULL::jsonb AS device_current_state,
-                NULL::integer AS user_id,
-                NULL::integer AS location_access
+                NULL::integer AS resident_id
             FROM locations l
             LEFT JOIN location_current_states lcs ON lcs.location_id = l.location_id
             WHERE l.location_id = #{locationId}
@@ -156,8 +154,7 @@
                 NULL::varchar AS location_current_state,
                 d.device_uuid,
                 dcs.current_state AS device_current_state,
-                NULL::integer AS user_id,
-                NULL::integer AS location_access
+                NULL::integer AS resident_id
             FROM location_devices ld
             JOIN devices d ON d.device_uuid = ld.device_uuid
             LEFT JOIN device_current_states dcs ON dcs.device_uuid = d.device_uuid
@@ -172,15 +169,14 @@
                 NULL::varchar AS location_current_state,
                 NULL::varchar AS device_uuid,
                 NULL::jsonb AS device_current_state,
-                ul.user_id,
-                0 AS location_access
-            FROM user_locations ul
-            JOIN users u ON u.user_id = ul.user_id
+                ul.resident_id
+            FROM resident_locations ul
+            JOIN residents u ON u.resident_id = ul.resident_id
             WHERE ul.location_id = #{locationId}
                 AND (ul.end_date IS NULL OR ul.end_date &gt; #{date})
                 AND u.deleted_at IS NULL
         ) hydration
-        ORDER BY hydration.row_type, hydration.device_uuid, hydration.user_id
+        ORDER BY hydration.row_type, hydration.device_uuid, hydration.resident_id
     </select>
 
     <select id="checkLambdaDeviceAccess" resultType="boolean">

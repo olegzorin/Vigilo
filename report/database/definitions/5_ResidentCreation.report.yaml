@@ -1,0 +1,11 @@
+id: 5
+name: ResidentCreation
+type: summary
+displayName: Resident Creation Date
+description: Displays residents and their created date in the current organization.
+query: queries/5_ResidentCreation.sql
+parameters:
+  - { name: organizationId, type: integer, required: true, displayName: Organization, placeholder: Select organization... }
+fields:
+  - { name: residentId, column: id, type: integer, displayName: Resident ID }
+  - { name: creationDate, column: t1, type: datetime, displayName: Date Created }

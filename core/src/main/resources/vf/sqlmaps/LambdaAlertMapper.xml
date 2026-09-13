@@ -12,6 +12,7 @@
         <result property="organizationId" column="organization_id"/>
         <result property="locationId" column="location_id"/>
         <result property="deviceUuid" column="device_uuid"/>
+        <result property="testing" column="testing"/>
         <result property="alertType" column="alert_type"/>
         <result property="severity" column="severity"/>
         <result property="status" column="status"/>
@@ -28,14 +29,18 @@
     </resultMap>
 
     <insert id="insertAlert">
+        <selectKey keyProperty="testing" resultType="boolean" order="AFTER">
+            SELECT testing FROM lambda_alerts
+            WHERE alert_id = #{alertId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler}
+        </selectKey>
         INSERT INTO lambda_alerts (
             alert_id, idempotency_key, payload_hash, organization_id, location_id, device_uuid,
-            alert_type, severity, status, rule_id, occurred_at, created_at,
+            testing, alert_type, severity, status, rule_id, occurred_at, created_at,
             lambda_assignment_id, lambda_id, lambda_version_id, run_id, event_key, changes_json)
         SELECT
             #{alertId,typeHandler=dev.olegz.vf.registry.dao.handlers.UuidStringTypeHandler},
             #{idempotencyKey}, #{payloadHash}, l.organization_id, #{locationId}, #{deviceUuid},
-            #{alertType}, #{severity}, #{status}, #{ruleId}, #{occurredAt}, CURRENT_TIMESTAMP(3),
+            (l.location_type = 'TESTING'), #{alertType}, #{severity}, #{status}, #{ruleId}, #{occurredAt}, CURRENT_TIMESTAMP(3),
             #{lambdaAssignmentId}, #{lambdaId}, #{lambdaVersionId}, #{runId}, #{eventKey},
             #{changesJson,typeHandler=dev.olegz.vf.registry.dao.handlers.JsonStringTypeHandler}
         FROM locations l
@@ -44,7 +49,7 @@
 
     <select id="selectAlert" resultMap="alertMap">
         SELECT alert_id, idempotency_key, payload_hash, organization_id, location_id, device_uuid,
-            alert_type, severity, status, rule_id, occurred_at, created_at,
+            testing, alert_type, severity, status, rule_id, occurred_at, created_at,
             lambda_assignment_id, lambda_id, lambda_version_id, run_id, event_key, changes_json
         FROM lambda_alerts
         WHERE idempotency_key = #{idempotencyKey}

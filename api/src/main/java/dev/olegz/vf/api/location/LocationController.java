@@ -74,22 +74,22 @@ public class LocationController {
         return lambdaStateAction.updateLocationState(key, locationId, request);
     }
 
-    @RequestMapping(method = RequestMethod.POST, path = "{locationId}/users/{userId}")
-    public ActionResponse assignUser(
+    @RequestMapping(method = RequestMethod.POST, path = "{locationId}/residents/{residentId}")
+    public ActionResponse assignResident(
         @RequestHeader(API_KEY) String key,
         @PathVariable int locationId,
-        @PathVariable int userId)
+        @PathVariable int residentId)
     {
-        return locationAction.assignUser(contextFactory.current(), locationId, userId);
+        return locationAction.assignResident(contextFactory.current(), locationId, residentId);
     }
 
-    @RequestMapping(method = RequestMethod.DELETE, path = "{locationId}/users/{userId}")
+    @RequestMapping(method = RequestMethod.DELETE, path = "{locationId}/residents/{residentId}")
     public ActionResponse cancelAssignment(
         @RequestHeader(API_KEY) String key,
         @PathVariable int locationId,
-        @PathVariable int userId)
+        @PathVariable int residentId)
     {
-        return locationAction.cancelAssignment(contextFactory.current(), locationId, userId);
+        return locationAction.cancelAssignment(contextFactory.current(), locationId, residentId);
     }
 
     @RequestMapping(method = RequestMethod.POST, path = "{locationId}/devices/{deviceUuid}")

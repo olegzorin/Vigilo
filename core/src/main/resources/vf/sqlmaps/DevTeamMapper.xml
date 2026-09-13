@@ -7,7 +7,7 @@
 
     <!-- List view: active member and lambda counts only, without the member/lambda collections. -->
     <select id="selectDevTeams" resultType="dev.olegz.vf.core.domain.lambdaversion.DevTeam" fetchSize="20">
-        SELECT t.dev_team_id, t.owner_user_id, t.name, t.description,
+        SELECT t.dev_team_id, t.organization_id, t.testing_location_id, t.owner_user_id, t.name, t.description,
             (SELECT COUNT(1)
                 FROM dev_team_members m
                 WHERE m.dev_team_id = t.dev_team_id
@@ -19,17 +19,38 @@
         <if test="userId != null">
             WHERE EXISTS (SELECT 1
                 FROM dev_team_members um
-                WHERE um.dev_team_id = t.dev_team_id AND um.user_id = #{userId})
+                WHERE um.dev_team_id = t.dev_team_id AND um.user_id = #{userId}
+                    AND um.start_date &lt;= NOW() AND (um.end_date IS NULL OR um.end_date &gt; NOW()))
         </if>
+        ORDER BY t.dev_team_id
+    </select>
+
+    <select id="selectTestingLocations" resultMap="dev.olegz.vf.registry.dao.mapper.LocationMapper.locationResultMap">
+        SELECT l.* FROM dev_team_locations g
+        JOIN dev_teams t ON t.dev_team_id = g.dev_team_id
+        JOIN locations l ON l.location_id = g.location_id AND l.organization_id = t.organization_id
+        WHERE g.dev_team_id = #{devTeamId} AND l.deleted_at IS NULL AND l.location_type = 'TESTING'
+        ORDER BY l.location_id
+    </select>
+
+    <select id="selectTeamsByTestingLocation" resultType="dev.olegz.vf.core.domain.lambdaversion.DevTeam">
+        SELECT t.* FROM dev_team_locations g
+        JOIN dev_teams t ON t.dev_team_id = g.dev_team_id
+        JOIN locations l ON l.location_id = g.location_id AND l.organization_id = t.organization_id
+        WHERE g.location_id = #{locationId} AND l.deleted_at IS NULL AND l.location_type = 'TESTING'
         ORDER BY t.dev_team_id
     </select>
 
     <!-- Detail view: full member and lambda collections, without the counts. -->
     <resultMap id="devTeamDetailResultMap" type="dev.olegz.vf.core.domain.lambdaversion.DevTeam">
         <id property="devTeamId" column="dev_team_id"/>
+        <result property="organizationId" column="organization_id"/>
+        <result property="testingLocationId" column="testing_location_id"/>
         <result property="ownerUserId" column="owner_user_id"/>
         <result property="name" column="name"/>
         <result property="description" column="description"/>
+        <collection property="testingLocations" column="dev_team_id"
+                    select="selectTestingLocations"/>
         <collection property="members" ofType="dev.olegz.vf.core.domain.lambdaversion.DevTeamMember">
             <id property="userId" column="user_id"/>
             <result property="startDate" column="start_date"/>
@@ -43,7 +64,7 @@
     </resultMap>
 
     <select id="selectDevTeam" resultMap="devTeamDetailResultMap">
-        SELECT t.dev_team_id, t.owner_user_id, t.name, t.description,
+        SELECT t.dev_team_id, t.organization_id, t.testing_location_id, t.owner_user_id, t.name, t.description,
             m.user_id, m.start_date, m.end_date,
             b.lambda_id, b.name AS lambda_name, b.description AS lambda_description
         FROM dev_teams t
@@ -55,19 +76,20 @@
 
     <select id="checkDevTeamMember" resultType="boolean">
         SELECT EXISTS (SELECT 1
-            FROM dev_team_members
+            FROM dev_team_members m
             WHERE dev_team_id = #{devTeamId} AND user_id = #{userId}
+                AND EXISTS (SELECT 1 FROM users u JOIN dev_teams t ON t.organization_id = u.organization_id
+                    WHERE u.user_id = m.user_id AND t.dev_team_id = m.dev_team_id
+                    AND u.deleted_at IS NULL AND u.account_type = 'DEVELOPER')
                 AND start_date &lt;= NOW()
                 AND (end_date IS NULL OR end_date &gt; NOW()))
     </select>
 
-    <!-- For tests only -->
     <insert id="insertDevTeam" useGeneratedKeys="true" keyProperty="devTeamId">
-        INSERT INTO dev_teams (owner_user_id, name, description)
-        VALUES (#{ownerUserId}, #{name}, #{description})
+        INSERT INTO dev_teams (organization_id, testing_location_id, owner_user_id, name, description)
+        VALUES (#{organizationId}, #{testingLocationId}, #{ownerUserId}, #{name}, #{description})
     </insert>
 
-    <!-- For tests only -->
     <insert id="insertDevTeamMember">
         INSERT INTO dev_team_members (dev_team_id, user_id, start_date, end_date)
         VALUES (#{devTeamId}, #{userId}, #{startDate}, #{endDate})
@@ -78,4 +100,28 @@
         WHERE dev_team_id = #{devTeamId} AND user_id = #{userId}
     </delete>
 
+    <select id="hasTestingLocationAccess" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1 FROM dev_team_locations g
+            JOIN dev_teams t ON t.dev_team_id = g.dev_team_id
+            JOIN dev_team_members m ON m.dev_team_id = t.dev_team_id
+            JOIN users u ON u.user_id = m.user_id AND u.organization_id = t.organization_id
+            JOIN locations l ON l.location_id = g.location_id AND l.organization_id = t.organization_id
+            WHERE m.user_id = #{userId} AND g.location_id = #{locationId}
+              AND u.deleted_at IS NULL AND u.account_type = 'DEVELOPER'
+              AND l.deleted_at IS NULL AND l.location_type = 'TESTING'
+              AND m.start_date &lt;= NOW() AND (m.end_date IS NULL OR m.end_date &gt; NOW())
+        )
+    </select>
+    <insert id="grantTestingLocation">
+        INSERT INTO dev_team_locations (dev_team_id, location_id) VALUES (#{devTeamId}, #{locationId})
+        ON CONFLICT DO NOTHING
+    </insert>
+    <delete id="revokeTestingLocation">
+        DELETE FROM dev_team_locations WHERE dev_team_id = #{devTeamId} AND location_id = #{locationId}
+    </delete>
+    <update id="updateOwner">
+        UPDATE dev_teams SET owner_user_id = #{userId} WHERE dev_team_id = #{devTeamId}
+    </update>
+    <select id="lockTeam" resultType="Integer">SELECT dev_team_id FROM dev_teams WHERE dev_team_id = #{devTeamId} FOR UPDATE</select>
 </mapper>

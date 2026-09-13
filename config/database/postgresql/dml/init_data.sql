@@ -12,8 +12,8 @@ VALUES (1, 'Demo Organization', NOW(), 'US', 'New York', 'America/New_York');
 /*==============================================================*/
 /* Step 2: Demo admin user                                      */
 /*==============================================================*/
-INSERT INTO users (user_id, username, created_at, first_name, last_name, email, organization_id)
-VALUES (1, 'admin@demo.org', NOW(), 'Demo', 'Admin', 'admin@demo.org', 1);
+INSERT INTO users (user_id, username, created_at, first_name, last_name, email, organization_id, account_type)
+VALUES (1, 'admin@demo.org', NOW(), 'Demo', 'Admin', 'admin@demo.org', 1, 'ADMINISTRATOR');
 
 -- Designate the user as administrator of the demo organization
 UPDATE organizations SET admin_user_id = 1 WHERE organization_id = 1;
@@ -27,14 +27,19 @@ VALUES (1, 'Demo Location', NOW(), 1, 'America/New_York');
 /*==============================================================*/
 /* Step 4: Demo dev team                                        */
 /*==============================================================*/
-INSERT INTO dev_teams (dev_team_id, owner_user_id, name, description)
-VALUES (1, 1, 'Demo Dev Team', 'Demo development team');
+INSERT INTO users (user_id, username, created_at, first_name, last_name, organization_id, account_type)
+VALUES (2, 'developer@demo.org', NOW(), 'Demo', 'Developer', 1, 'DEVELOPER');
+INSERT INTO locations (location_id, location_name, created_at, organization_id, timezone, location_type)
+VALUES (2, 'Demo Team Testing', NOW(), 1, 'UTC', 'TESTING');
+INSERT INTO dev_teams (dev_team_id, owner_user_id, organization_id, testing_location_id, name, description)
+VALUES (1, 2, 1, 2, 'Demo Dev Team', 'Demo development team');
 
 /*==============================================================*/
 /* Step 5: Add the demo admin user as a team member             */
 /*==============================================================*/
 INSERT INTO dev_team_members (dev_team_id, user_id, start_date)
-VALUES (1, 1, NOW());
+VALUES (1, 2, NOW());
+INSERT INTO dev_team_locations (dev_team_id, location_id) VALUES (1, 2);
 
 /*==============================================================*/
 /* Step 6: Demo lambda                                             */

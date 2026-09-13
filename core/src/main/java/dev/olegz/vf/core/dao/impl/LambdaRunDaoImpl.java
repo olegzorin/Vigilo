@@ -119,7 +119,7 @@ public class LambdaRunDaoImpl implements LambdaRunDao {
 
         String currentState = null;
         List<LocationDeviceStateSnapshot> deviceStates = new ArrayList<>();
-        List<LocationUserSnapshot> users = new ArrayList<>();
+        List<LocationResidentSnapshot> residents = new ArrayList<>();
         for (LocationHydrationRow row : rows) {
             if (row == null) continue;
 
@@ -133,18 +133,17 @@ public class LambdaRunDaoImpl implements LambdaRunDao {
                     deviceStates.add(new LocationDeviceStateSnapshot(row.deviceUuid, state));
                 }
                 case 2 -> {
-                    if (row.userId == null) continue;
+                    if (row.residentId == null) continue;
 
-                    LocationUserSnapshot user = new LocationUserSnapshot();
-                    user.userId = row.userId;
-                    user.locationAccess = row.locationAccess != null ? row.locationAccess : 0;
-                    users.add(user);
+                    LocationResidentSnapshot resident = new LocationResidentSnapshot();
+                    resident.residentId = row.residentId;
+                    residents.add(resident);
                 }
                 default -> logger.warn("Unknown trigger location hydration row type {}", row.rowType);
             }
         }
         return new LocationHydrationSnapshot(
-            currentState, List.copyOf(deviceStates), List.copyOf(users));
+            currentState, List.copyOf(deviceStates), List.copyOf(residents));
     }
 
     @Override

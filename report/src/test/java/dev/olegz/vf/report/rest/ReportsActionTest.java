@@ -30,6 +30,20 @@ import tools.jackson.databind.JsonNode;
 
 class ReportsActionTest {
     @Test
+    void omittedOrganizationDefaultsToCallerAndDeveloperCannotReadReports() {
+        AtomicReference<Object[]> arguments = new AtomicReference<>();
+        ReportsService service = (ReportsService) Proxy.newProxyInstance(ReportsService.class.getClassLoader(),
+            new Class<?>[]{ReportsService.class}, (proxy, method, args) -> { arguments.set(args); return List.of(); });
+        ReportsAction action = action(service);
+        action.getReports(context(12), null, null, null, null);
+        assertEquals(12, arguments.get()[1]);
+        arguments.set(null);
+        assertThrows(AccessDeniedException.class, () -> action.getReports(
+            context(12, 4, Map.of(12, organization(12, null, 3))), null, null, null, null));
+        assertNull(arguments.get());
+    }
+
+    @Test
     void getReportsReturnsApiModelWithoutSql() {
         Report report = new Report();
         report.reportId = 7;
@@ -52,17 +66,16 @@ class ReportsActionTest {
     }
 
     @Test
-    void putReportGroupOrganizationAllowsAncestorAdministrator() {
+    void putReportGroupOrganizationRejectsAncestorAdministrator() {
         AtomicReference<Object[]> assignment = new AtomicReference<>();
         ReportsAction action = action(assignmentService(assignment));
 
-        action.putReportGroupOrganization(context(10, 3, Map.of(
+        assertThrows(AccessDeniedException.class, () -> action.putReportGroupOrganization(context(10, 3, Map.of(
             10, organization(10, null, 3),
             20, organization(20, 10, 4),
-            30, organization(30, 20, 5))), 30, 7);
+            30, organization(30, 20, 5))), 30, 7));
 
-        assertEquals(7, assignment.get()[0]);
-        assertEquals(30, assignment.get()[1]);
+        assertNull(assignment.get());
     }
 
     @Test
@@ -173,7 +186,7 @@ class ReportsActionTest {
     }
 
     private static ReportActionContext context(int organizationId) {
-        return context(organizationId, 3, Map.of());
+        return context(organizationId, 3, Map.of(organizationId, organization(organizationId,null,3)));
     }
 
     private static ReportActionContext context(int organizationId, int userId,

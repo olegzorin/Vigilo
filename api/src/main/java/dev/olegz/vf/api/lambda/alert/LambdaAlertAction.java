@@ -47,6 +47,7 @@ public class LambdaAlertAction {
         response.alertId = result.alert().alertId;
         response.status = result.alert().status;
         response.created = result.created();
+        response.testing = result.alert().testing;
         return response;
     }
 
@@ -76,5 +77,6 @@ public class LambdaAlertAction {
         public String alertId;
         public String status;
         public boolean created;
+        public boolean testing;
     }
 }

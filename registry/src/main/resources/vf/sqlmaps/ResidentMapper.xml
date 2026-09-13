@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="dev.olegz.vf.registry.dao.mapper.ResidentMapper">
+    <insert id="insertResident" useGeneratedKeys="true" keyProperty="residentId">
+        INSERT INTO residents (organization_id, first_name, last_name, email, phone, synthetic, created_at)
+        VALUES (#{organizationId}, #{firstName}, #{lastName}, #{email}, #{phone}, #{synthetic}, #{createdAt})
+    </insert>
+    <select id="selectResident" resultType="dev.olegz.vf.registry.domain.account.Resident">
+        SELECT * FROM residents WHERE resident_id = #{residentId} AND organization_id = #{organizationId} AND deleted_at IS NULL
+    </select>
+    <select id="selectResidents" resultType="dev.olegz.vf.registry.domain.account.Resident">
+        SELECT * FROM residents WHERE organization_id = #{organizationId} AND deleted_at IS NULL ORDER BY last_name, first_name, resident_id
+    </select>
+    <select id="selectResidentsByLocation" resultType="dev.olegz.vf.registry.domain.account.Resident">
+        SELECT r.* FROM residents r JOIN resident_locations rl ON rl.resident_id = r.resident_id
+        WHERE rl.location_id = #{locationId} AND r.deleted_at IS NULL
+          AND rl.start_date &lt;= NOW() AND (rl.end_date IS NULL OR rl.end_date &gt; NOW())
+        ORDER BY r.last_name, r.first_name, r.resident_id
+    </select>
+    <update id="updateResident">
+        UPDATE residents SET first_name = #{firstName}, last_name = #{lastName}, email = #{email}, phone = #{phone}
+        WHERE resident_id = #{residentId} AND organization_id = #{organizationId} AND deleted_at IS NULL
+    </update>
+</mapper>

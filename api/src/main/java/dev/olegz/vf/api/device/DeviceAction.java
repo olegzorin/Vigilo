@@ -1,5 +1,6 @@
 package dev.olegz.vf.api.device;
 
+import dev.olegz.vf.registry.service.account.AccessService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,15 +24,18 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class DeviceAction {
+    private final AccessService access;
     private final DeviceDao deviceDao;
     private final LocationDao locationDao;
     private final DeviceLocationAssignmentService assignmentService;
 
     public DeviceAction(
+        AccessService access,
         DeviceDao deviceDao,
         LocationDao locationDao,
         DeviceLocationAssignmentService assignmentService)
     {
+        this.access = access;
         this.deviceDao = deviceDao;
         this.locationDao = locationDao;
         this.assignmentService = assignmentService;
@@ -40,19 +44,9 @@ public class DeviceAction {
     public Response listDevices(ActionContext ctx, Integer typeId, Integer locationId) {
         User caller = ctx.user();
         Integer effectiveLocationId = locationId;
-        if (ctx.isAdmin()) {
-            if (locationId != null && locationDao.getOrganizationLocation(caller.organizationId, locationId) == null) {
-                throw new ObjectNotFoundException("Location " + locationId + " not found");
-            }
-        } else {
-            Location currentLocation = locationDao.getLocationByUser(caller);
-            if (currentLocation == null) {
-                return devicesResponse(List.of(), List.of());
-            }
-            if (locationId != null && locationId != currentLocation.locationId) {
-                throw new AccessDeniedException("Access to location " + locationId + " denied");
-            }
-            effectiveLocationId = currentLocation.locationId;
+        if (locationId != null) access.requireLocation(caller, locationId);
+        else if (!access.isAdmin(caller)) {
+            throw new AccessDeniedException("Developers must select an authorized testing location");
         }
 
         List<Device> devices = deviceDao.getDevices(caller.organizationId, typeId, effectiveLocationId);
@@ -63,22 +57,11 @@ public class DeviceAction {
 
     public DeviceDetailResponse getDevice(ActionContext ctx, String deviceUuid) {
         User caller = ctx.user();
-        Device device;
-        LocationDevice assignment;
-        if (ctx.isAdmin()) {
-            device = requireDevice(caller.organizationId, deviceUuid);
-            assignment = deviceDao.getLocationDevice(caller.organizationId, deviceUuid, null);
-        } else {
-            Location currentLocation = locationDao.getLocationByUser(caller);
-            if (currentLocation == null) {
-                throw deviceAccessDenied(deviceUuid);
-            }
-            assignment =
-                deviceDao.getLocationDevice(caller.organizationId, deviceUuid, currentLocation.locationId);
-            if (assignment == null) {
-                throw deviceAccessDenied(deviceUuid);
-            }
-            device = requireDevice(caller.organizationId, deviceUuid);
+        Device device = requireDevice(caller.organizationId, deviceUuid);
+        LocationDevice assignment = deviceDao.getLocationDevice(caller.organizationId, deviceUuid, null);
+        if (!access.isAdmin(caller)) {
+            if (assignment == null) throw deviceAccessDenied(deviceUuid);
+            access.requireLocation(caller, assignment.locationId);
         }
 
         DeviceCurrentState currentState =
@@ -154,6 +137,7 @@ public class DeviceAction {
     private static void apply(Device device, DeviceRequest request) {
         if (request instanceof CreateDeviceRequest createRequest) {
             device.deviceUuid = createRequest.deviceUuid;
+            device.testing = createRequest.testing;
         }
         device.typeId = request.typeId;
         device.deviceName = request.deviceName;
@@ -181,6 +165,7 @@ public class DeviceAction {
     }
 
     public static class CreateDeviceRequest extends DeviceRequest {
+        public boolean testing;
         public @NotBlank(message = "deviceUuid") String deviceUuid;
         public @Min(value = 1, message = "organizationId") int organizationId;
     }

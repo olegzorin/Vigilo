@@ -3,6 +3,7 @@ package dev.olegz.vf.registry.domain.account;
 import dev.olegz.vf.common.Datetime;
 
 public class User {
+    public AccountType accountType = AccountType.DEVELOPER;
     public int userId;
     public String username;
     public String password;

@@ -3,6 +3,7 @@ package dev.olegz.vf.core.domain.alert;
 import java.sql.Timestamp;
 
 public class LambdaAlert {
+    public boolean testing;
     public String alertId;
     public String idempotencyKey;
     public String payloadHash;

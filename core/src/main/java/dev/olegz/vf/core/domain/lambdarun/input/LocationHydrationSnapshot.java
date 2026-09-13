@@ -5,6 +5,6 @@ import java.util.List;
 public record LocationHydrationSnapshot(
     String currentState,
     List<LocationDeviceStateSnapshot> deviceStates,
-    List<LocationUserSnapshot> users)
+    List<LocationResidentSnapshot> residents)
 {
 }

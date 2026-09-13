@@ -25,24 +25,23 @@ The main design goals are:
 
 ### Organizations and tenancy
 
-An **organization** is the principal tenant boundary. Organizations may form a hierarchy, which
-allows a parent organization to administer or inherit selected resources from descendants.
-Authorization is evaluated by server-side services; callers cannot establish ownership merely by
-including an organization ID in a request.
+An **organization** is the tenant boundary. Organization administrators manage their own
+organization; hierarchy does not automatically grant access to descendant organizations.
 
-A **user** belongs to an organization and may be assigned to one or more locations. Organization
-administrators manage users, locations, lambda access, and report groups within their permitted
-hierarchy.
+A **resident** is a monitored person with profile information and location-assignment history,
+without login credentials or application permissions. A **user** is a separate login account,
+used by administrators and developers. Only administrators register residents and developers.
 
 ### Locations and devices
 
-A **location** is the operational unit at which monitoring occurs. Users and devices are assigned
-to locations over time, so assignment records have effective dates rather than being simple static
-links.
+A **location** is either OPERATIONAL or TESTING. Real residents and operational devices belong
+to operational locations. Synthetic residents and explicitly designated test devices belong to
+testing locations. Location and device environment designations are immutable.
 
-A **device** has a type and an organization owner. Its current state is stored separately from its
-identity. Device and location state changes can become triggers for lambdas assigned to the affected
-location.
+Developer teams belong to an organization and receive a default testing location when created
+by its administrator. Administrators manage membership and additional testing grants. Developer
+access is inherited from active team membership, independently of resident location assignments.
+See [the access model and upgrade procedure](user-access-model.md) for the complete rules.
 
 ### Lambdas, versions, and development teams
 
@@ -89,7 +88,7 @@ Assignments are the unit of runtime isolation:
 ### Events, inputs, and runs
 
 A **trigger event** describes a location or device state change. Before a lambda receives it, VF
-hydrates the event with the current location, assigned devices, users, and relevant state. The
+hydrates the event with the current location, assigned devices, residents, and relevant state. The
 result is `TriggerEventData`.
 
 A **Lambda run** is a logical execution for one assignment. Several inputs may be aggregated into a

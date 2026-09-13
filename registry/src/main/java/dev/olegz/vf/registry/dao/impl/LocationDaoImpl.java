@@ -72,10 +72,6 @@ public class LocationDaoImpl implements LocationDao {
         return mapper.selectLocationsByOrganization(organizationId);
     }
 
-    @Override
-    public Location getLocationByUser(User user) {
-        return mapper.selectLocationByUser(user.userId, user.organizationId);
-    }
 
     @Override
     @Transactional

@@ -28,7 +28,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>
  * Run it via the {@code create-admin} Maven profile (see {@code registry/pom.xml}):
  * <pre>
- *   mvn -q -pl registry -am -Pcreate-admin exec:java \
+ *   mvn -q -pl registry -Pcreate-admin compile exec:java \
  *       -Dexec.args="--org 42 --username jane --firstName Jane --lastName Doe --email jane@acme.com"
  * </pre>
  * The password may be supplied with {@code --password}; when omitted it is read from the

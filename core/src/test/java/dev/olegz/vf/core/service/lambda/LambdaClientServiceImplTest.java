@@ -254,7 +254,7 @@ class LambdaClientServiceImplTest {
     }
 
     @Test
-    void generatesLambdaApiKeyForLocationOwnerAndOrganizationAdmin() {
+    void generatesLambdaApiKeyForAuthorizedDeveloperAndOrganizationAdmin() {
         LambdaRuntimeAssignment assignment = runtimeAssignment();
         User locationOwner = user(7, 41);
         User organizationAdmin = user(8, 41);
@@ -268,6 +268,27 @@ class LambdaClientServiceImplTest {
         assertEquals("lambda-key", adminKey.key);
         assertTrue(ownerKey.expiry > 0);
         assertTrue(adminKey.expiry > 0);
+    }
+
+    @Test
+    void legacyLambdaKeysMustBeReissued() {
+        LambdaKeyJwtClaims claims = new LambdaKeyJwtClaims();
+        claims.ty = dev.olegz.vf.registry.service.encryption.JwtClaims.TYPE_LAMBDA;
+        claims.aid = 1;
+        claims.bid = 1;
+        assertFalse(claims.valid());
+        claims.av = 2;
+        assertTrue(claims.valid());
+    }
+
+    @Test
+    void manuallyIssuedKeyRechecksDeveloperAccess() {
+        User developer = user(7,41);
+        LambdaClientService service = service(runtimeAssignment(),developer,organization(41,8),"lambda-key");
+        service.generateLambdaApiKey(developer,101);
+        assertNotNull(service.parseLambdaKey("lambda-key"));
+        developer.accountType = dev.olegz.vf.registry.domain.account.AccountType.ADMINISTRATOR;
+        assertThrows(AccessDeniedException.class,()->service.parseLambdaKey("lambda-key"));
     }
 
     @Test
@@ -489,32 +510,35 @@ class LambdaClientServiceImplTest {
         Organization organization,
         String generatedKey)
     {
-        return new LambdaClientServiceImpl(
+        LocationDao locations = proxy(LocationDao.class, (proxy, method, args) -> {
+            if (!method.getName().equals("getOrganizationLocation") || assignment == null) return defaultValue(method.getReturnType());
+            Location location = new Location(); location.locationId = assignment.locationId;
+            location.organizationId = organization.organizationId;
+            location.locationType = dev.olegz.vf.registry.domain.account.LocationType.TESTING;
+            return location;
+        });
+        OrganizationDao organizations = proxy(OrganizationDao.class, (proxy, method, args) -> organization);
+        LambdaKeyJwtClaims[] issued = {null};
+        LambdaClientServiceImpl service = new LambdaClientServiceImpl(
             proxy(LambdaRunDao.class, (proxy, method, args) ->
                 method.getName().equals("getActiveLambdaRuntimeAssignment") ? assignment : defaultValue(method.getReturnType())),
             proxy(LambdaVariableDao.class, (proxy, method, args) ->
-                method.getName().equals("getLambdaAssignmentVariableGeneration")
-                    ? 77L
-                    : defaultValue(method.getReturnType())),
-            proxy(LocationDao.class, (proxy, method, args) -> {
-                if (!method.getName().equals("getLocationByUser") || args[0] != locationOwner) {
-                    return defaultValue(method.getReturnType());
-                }
-                Location location = new Location();
-                location.locationId = assignment.locationId;
-                return location;
-            }),
+                method.getName().equals("getLambdaAssignmentVariableGeneration") ? 77L : defaultValue(method.getReturnType())),
+            locations,
             proxy(DeviceDao.class, (proxy, method, args) -> defaultValue(method.getReturnType())),
-            proxy(OrganizationDao.class, (proxy, method, args) ->
-                method.getName().equals("getOrganization") ? organization : defaultValue(method.getReturnType())),
+            organizations,
             proxy(JwtService.class, (proxy, method, args) -> {
-                if (!method.getName().equals("createJwt")) {
-                    return defaultValue(method.getReturnType());
-                }
-                assertEquals(77L, ((LambdaKeyJwtClaims) args[0]).vgen);
+                if (method.getName().equals("verifyJwt")) return issued[0];
+                if (!method.getName().equals("createJwt")) return defaultValue(method.getReturnType());
+                issued[0] = (LambdaKeyJwtClaims)args[0];
+                assertEquals(77L, issued[0].vgen);
                 return generatedKey;
-            }),
-            NOOP_PRODUCER);
+            }), NOOP_PRODUCER);
+        service.configureAuthorization(new dev.olegz.vf.registry.service.account.AccessService(organizations,locations,
+            java.util.List.of((u,l) -> u==locationOwner.userId)),
+            proxy(dev.olegz.vf.registry.dao.UserDao.class,(p,m,a) -> locationOwner),
+            proxy(dev.olegz.vf.core.dao.DevTeamDao.class,(p,m,a) -> (int)a[1]==locationOwner.userId));
+        return service;
     }
 
     private static LambdaRuntimeAssignment runtimeAssignment() {

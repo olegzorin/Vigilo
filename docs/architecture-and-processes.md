@@ -53,7 +53,7 @@ foundation <------------------------------- mcp
 | `foundation` | Properties, environment paths, logging, JSON mapping, exceptions, utilities, and concurrency support. |
 | `aws` | Central AWS SDK v2 client lifecycle and S3, SQS, SNS, ECR, CloudWatch, KMS, IAM, Lambda, and EC2 integrations, including local substitutes. |
 | `messaging` | Broker-neutral producer/listener contracts plus Kafka, SQS, Artemis, and in-memory implementations. It owns `kafka-clients`. |
-| `registry` | Organizations, hierarchy, users, locations, devices, authentication, authorization, and their MyBatis persistence. |
+| `registry` | Organizations, hierarchy, residents, login accounts, locations, devices, authentication, authorization, and their MyBatis persistence. |
 | `core` | Lambda definitions, versions, assignments, deployment, execution state, variables, alerts, caching, integration services, and database outboxes. |
 | `report` | Report definitions, registration, persistence, SQL execution, output storage, and report REST configuration. |
 | `worker` | Kafka/SQS listeners, lambda execution, deployment work, cron jobs, retries, outbox dispatch, and scheduled reports. |
@@ -164,7 +164,7 @@ device/location change
 ```
 
 Hydration combines event deltas with current database snapshots for the location, devices, and
-users. A stable event identity supports deduplication. Default-lane invocation waits for the Lambda
+residents. A stable event identity supports deduplication. Default-lane invocation waits for the Lambda
 attempt and acknowledges Kafka only after the attempt has a durable outcome.
 
 When a retryable failure occurs, VF updates run state and inserts the retry row atomically. A worker

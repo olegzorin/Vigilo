@@ -51,8 +51,7 @@ class LambdaRunDaoImplTest {
 
         LocationHydrationRow user = new LocationHydrationRow();
         user.rowType = 2;
-        user.userId = 101;
-        user.locationAccess = 3;
+        user.residentId = 101;
 
         LocationHydrationSnapshot snapshot = LambdaRunDaoImpl.toLocationHydrationSnapshot(
             List.of(location, device, user));
@@ -61,14 +60,13 @@ class LambdaRunDaoImplTest {
         assertEquals(1, snapshot.deviceStates().size());
         assertEquals("device-1", snapshot.deviceStates().getFirst().deviceUuid());
         assertEquals(Map.of("online", true), snapshot.deviceStates().getFirst().currentState());
-        assertEquals(1, snapshot.users().size());
-        assertEquals(101, snapshot.users().getFirst().userId);
-        assertEquals(3, snapshot.users().getFirst().locationAccess);
+        assertEquals(1, snapshot.residents().size());
+        assertEquals(101, snapshot.residents().getFirst().residentId);
         assertThrows(UnsupportedOperationException.class, () -> snapshot.deviceStates().clear());
         assertThrows(
             UnsupportedOperationException.class,
             () -> snapshot.deviceStates().getFirst().currentState().clear());
-        assertThrows(UnsupportedOperationException.class, () -> snapshot.users().clear());
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.residents().clear());
     }
 
     @Test
@@ -77,7 +75,7 @@ class LambdaRunDaoImplTest {
 
         assertEquals(null, snapshot.currentState());
         assertEquals(List.of(), snapshot.deviceStates());
-        assertEquals(List.of(), snapshot.users());
+        assertEquals(List.of(), snapshot.residents());
     }
 
     private static LambdaRuntimeAssignment runtimeAssignment(int assignmentId, int trigger, Datetime endDate) {

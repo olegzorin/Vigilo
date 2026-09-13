@@ -1,5 +1,6 @@
 package dev.olegz.vf.registry.service.device;
 
+import dev.olegz.vf.registry.domain.account.LocationType;
 import dev.olegz.vf.common.exception.AccessDeniedException;
 import dev.olegz.vf.common.exception.DuplicateEntityException;
 import dev.olegz.vf.common.exception.ObjectNotFoundException;
@@ -36,6 +37,9 @@ public class DeviceLocationAssignmentServiceImpl implements DeviceLocationAssign
         Location location = getAdminLocation(caller, locationId);
         Device device = getOrganizationDevice(caller.organizationId, deviceUuid);
 
+        if (device.testing != (location.locationType == LocationType.TESTING)) {
+            throw new AccessDeniedException("Test devices require testing locations; operational devices require operational locations");
+        }
         LocationDevice assignment = new LocationDevice();
         assignment.deviceUuid = deviceUuid;
         assignment.locationId = locationId;

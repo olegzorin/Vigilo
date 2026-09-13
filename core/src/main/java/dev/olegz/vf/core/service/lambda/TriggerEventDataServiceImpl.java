@@ -35,7 +35,7 @@ public class TriggerEventDataServiceImpl implements TriggerEventDataService {
             List.of(),
             LocationSnapshot.from(metadata, hydration.currentState()),
             hydrateDevices(deviceMetadata, hydration.deviceStates()),
-            hydration.users());
+            hydration.residents());
     }
 
     @Override
@@ -55,7 +55,7 @@ public class TriggerEventDataServiceImpl implements TriggerEventDataService {
             event.scheduleIds,
             LocationSnapshot.from(metadata, hydration.currentState()),
             hydrateDevices(deviceMetadata, hydration.deviceStates()),
-            hydration.users());
+            hydration.residents());
     }
 
     @Override
@@ -75,14 +75,14 @@ public class TriggerEventDataServiceImpl implements TriggerEventDataService {
             List.of(),
             LocationSnapshot.from(metadata, hydration.currentState()),
             hydrateDevices(deviceMetadata, hydration.deviceStates()),
-            hydration.users());
+            hydration.residents());
     }
 
     static TriggerEventData hydrate(
         TriggerEvent event,
         LocationSnapshot location,
         List<LocationDeviceSnapshot> devices,
-        List<LocationUserSnapshot> users)
+        List<LocationResidentSnapshot> residents)
     {
         return hydrate(
             event.time,
@@ -94,7 +94,7 @@ public class TriggerEventDataServiceImpl implements TriggerEventDataService {
             List.of(),
             location,
             devices,
-            users);
+            residents);
     }
 
     private static TriggerEventData hydrate(
@@ -107,7 +107,7 @@ public class TriggerEventDataServiceImpl implements TriggerEventDataService {
         List<String> scheduleIds,
         LocationSnapshot location,
         List<LocationDeviceSnapshot> devices,
-        List<LocationUserSnapshot> users)
+        List<LocationResidentSnapshot> residents)
     {
         TriggerEventData data = new TriggerEventData();
         data.key = UUID.randomUUID().toString();
@@ -120,7 +120,7 @@ public class TriggerEventDataServiceImpl implements TriggerEventDataService {
             Collections.unmodifiableMap(new LinkedHashMap<>(newDeviceState)) : null;
         data.location = location;
         data.locationDevices = devices != null ? List.copyOf(devices) : List.of();
-        data.locationUsers = users != null ? List.copyOf(users) : List.of();
+        data.locationResidents = residents != null ? List.copyOf(residents) : List.of();
         data.scheduleIds = scheduleIds != null ? List.copyOf(scheduleIds) : List.of();
         return data;
     }

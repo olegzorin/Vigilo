@@ -15,7 +15,7 @@ SELECT l.location_id,
        o.organization_name
 FROM locations l
          JOIN organizations o ON o.organization_id = l.organization_id AND o.deleted_at IS NULL
-WHERE l.deleted_at IS NULL;
+WHERE l.deleted_at IS NULL AND l.location_type = 'OPERATIONAL';
 
 CREATE OR REPLACE VIEW v_reports_devices
 AS
@@ -30,13 +30,12 @@ FROM devices d
          JOIN location_devices ld ON ld.device_uuid = d.device_uuid
             AND ld.start_date <= NOW() AND (ld.end_date IS NULL OR ld.end_date > NOW());
 
-CREATE OR REPLACE VIEW v_reports_organization_users
+CREATE OR REPLACE VIEW v_reports_organization_residents
 AS
-SELECT u.user_id,
+SELECT u.resident_id,
        u.created_at,
        u.first_name,
        u.last_name,
-       u.username,
        u.email,
        u.phone,
        l.organization_id,
@@ -48,7 +47,7 @@ SELECT u.user_id,
        l.state,
        l.country_code
 FROM locations l
-         JOIN user_locations ul ON ul.location_id = l.location_id
+         JOIN resident_locations ul ON ul.location_id = l.location_id
             AND ul.start_date <= NOW() AND (ul.end_date IS NULL OR ul.end_date > NOW())
-         JOIN users u ON u.user_id = ul.user_id AND u.deleted_at IS NULL
-WHERE l.deleted_at IS NULL;
+         JOIN residents u ON u.resident_id = ul.resident_id AND u.deleted_at IS NULL
+WHERE l.deleted_at IS NULL AND l.location_type = 'OPERATIONAL';

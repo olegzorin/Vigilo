@@ -37,7 +37,7 @@ dangerous state transitions.
   - Loaded from the database:
     - `location`
     - `locationDevices`
-    - `locationUsers`
+    - `locationResidents`
 - Location hydration includes location metadata and current state.
 - Active location devices are converted to `LocationDeviceSnapshot`, including their current state.
 - Hydration runs in a read-only transaction.

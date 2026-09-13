@@ -29,10 +29,6 @@ public interface UserService {
         String lastName,
         String email);
 
-    /**
-     * @return the active users currently assigned to the location.
-     */
-    List<User> getUsersByLocation(int locationId);
 
     /**
      * Update the profile fields (first/last name, email, phone) of an existing user,

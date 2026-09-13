@@ -29,6 +29,11 @@ public class DevTeamDaoImpl implements DevTeamDao {
     }
 
     @Override
+    public List<DevTeam> getTeamsByTestingLocation(int locationId) {
+        return mapper.selectTeamsByTestingLocation(locationId);
+    }
+
+    @Override
     public boolean checkDevTeamMember(int devTeamId, int userId) {
         return mapper.checkDevTeamMember(devTeamId, userId);
     }
@@ -56,4 +61,9 @@ public class DevTeamDaoImpl implements DevTeamDao {
         return mapper.deleteDevTeamMember(devTeamId, userId) == 1;
     }
 
+    public boolean hasTestingLocationAccess(int userId, int locationId) { return mapper.hasTestingLocationAccess(userId, locationId); }
+    public void grantTestingLocation(int devTeamId, int locationId) { mapper.grantTestingLocation(devTeamId, locationId); }
+    public void revokeTestingLocation(int devTeamId, int locationId) { mapper.revokeTestingLocation(devTeamId, locationId); }
+    public void lockTeam(int devTeamId) { mapper.lockTeam(devTeamId); }
+    public void updateOwner(int devTeamId, int userId) { mapper.updateOwner(devTeamId, userId); }
 }

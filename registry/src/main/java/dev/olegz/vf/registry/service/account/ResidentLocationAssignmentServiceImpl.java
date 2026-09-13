@@ -7,47 +7,50 @@ import dev.olegz.vf.common.exception.DuplicateEntityException;
 import dev.olegz.vf.common.exception.ObjectNotFoundException;
 import dev.olegz.vf.registry.dao.LocationDao;
 import dev.olegz.vf.registry.dao.OrganizationDao;
-import dev.olegz.vf.registry.dao.UserLocationDao;
+import dev.olegz.vf.registry.dao.ResidentLocationDao;
 import dev.olegz.vf.registry.domain.account.Location;
-import dev.olegz.vf.registry.domain.account.LocationUser;
+import dev.olegz.vf.registry.domain.account.LocationResident;
 import dev.olegz.vf.registry.domain.account.Organization;
 import dev.olegz.vf.registry.domain.account.User;
+import dev.olegz.vf.registry.domain.account.Resident;
+import dev.olegz.vf.registry.domain.account.LocationType;
+import dev.olegz.vf.registry.dao.ResidentDao;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-@Service("userLocationAssignmentService")
-public class UserLocationAssignmentServiceImpl implements UserLocationAssignmentService {
+@Service("residentLocationAssignmentService")
+public class ResidentLocationAssignmentServiceImpl implements ResidentLocationAssignmentService {
     private final LocationDao locationDao;
     private final OrganizationDao organizationDao;
-    private final UserLocationDao userLocationDao;
-    private final UserService userService;
+    private final ResidentLocationDao residentLocationDao;
+    private final ResidentDao residentDao;
     private final List<LocationAssignmentChangeHandler> changeHandlers;
 
-    public UserLocationAssignmentServiceImpl(
+    public ResidentLocationAssignmentServiceImpl(
         LocationDao locationDao,
         OrganizationDao organizationDao,
-        UserLocationDao userLocationDao,
-        UserService userService,
+        ResidentLocationDao residentLocationDao,
+        ResidentDao residentDao,
         List<LocationAssignmentChangeHandler> changeHandlers)
     {
         this.locationDao = locationDao;
         this.organizationDao = organizationDao;
-        this.userLocationDao = userLocationDao;
-        this.userService = userService;
+        this.residentLocationDao = residentLocationDao;
+        this.residentDao = residentDao;
         this.changeHandlers = List.copyOf(changeHandlers);
     }
 
     @Override
     @Transactional
-    public LocationUser assignUser(User caller, int locationId, int userId) {
+    public LocationResident assignResident(User caller, int locationId, int residentId) {
         Location location = getAdminLocation(caller, locationId);
-        requireUserInOrganization(userId, location.organizationId);
+        requireResidentInOrganization(residentId, location);
 
-        LocationUser assignment = new LocationUser();
-        assignment.userId = userId;
+        LocationResident assignment = new LocationResident();
+        assignment.residentId = residentId;
         assignment.locationId = locationId;
-        if (!userLocationDao.insertUserLocation(assignment)) {
-            throw new DuplicateEntityException("User " + userId + " already has an active location assignment");
+        if (!residentLocationDao.insertResidentLocation(assignment)) {
+            throw new DuplicateEntityException("Resident " + residentId + " already has an active location assignment");
         }
         notifyLocationMembershipChanged(locationId);
         return assignment;
@@ -55,12 +58,12 @@ public class UserLocationAssignmentServiceImpl implements UserLocationAssignment
 
     @Override
     @Transactional
-    public void cancelAssignment(User caller, int locationId, int userId) {
+    public void cancelAssignment(User caller, int locationId, int residentId) {
         Location location = getAdminLocation(caller, locationId);
-        requireUserInOrganization(userId, location.organizationId);
-        if (!userLocationDao.deleteUserLocation(userId, locationId)) {
+        requireResidentInOrganization(residentId, location);
+        if (!residentLocationDao.deleteResidentLocation(residentId, locationId)) {
             throw new ObjectNotFoundException(
-                "Active assignment of user " + userId + " to location " + locationId + " not found");
+                "Active assignment of resident " + residentId + " to location " + locationId + " not found");
         }
         notifyLocationMembershipChanged(locationId);
     }
@@ -82,13 +85,16 @@ public class UserLocationAssignmentServiceImpl implements UserLocationAssignment
         return location;
     }
 
-    private void requireUserInOrganization(int userId, int organizationId) {
-        User user = userService.getUser(userId);
-        if (user == null) {
-            throw new ObjectNotFoundException("User " + userId + " not found");
+    private void requireResidentInOrganization(int residentId, Location location) {
+        Resident resident = residentDao.getResident(location.organizationId, residentId);
+        if (resident == null) {
+            throw new ObjectNotFoundException("Resident " + residentId + " not found");
         }
-        if (user.organizationId != organizationId) {
-            throw new AccessDeniedException("Access to user " + userId + " denied");
+        if (resident.synthetic != (location.locationType == LocationType.TESTING)) {
+            throw new AccessDeniedException("Synthetic residents require testing locations; real residents require operational locations");
+        }
+        if (resident.organizationId != location.organizationId) {
+            throw new AccessDeniedException("Access to resident " + residentId + " denied");
         }
     }
 }

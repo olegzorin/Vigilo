@@ -1,5 +1,6 @@
 package dev.olegz.vf.core.service.lambda;
 
+import dev.olegz.vf.common.exception.AccessDeniedException;
 import java.util.List;
 import java.util.Map;
 
@@ -157,6 +158,11 @@ public class LambdaManagementServiceImpl implements LambdaManagementService {
         return lambdaDao.getLambdaVersions(lambdaId, version, statuses);
     }
 
+    private void requireTeamOwner(int userId, Lambda lambda) {
+        var team = devTeamDao.getDevTeam(lambda.devTeamId);
+        if (team == null || team.ownerUserId != userId) throw new AccessDeniedException("Team owner required for production releases");
+    }
+
     private Lambda getLambdaForUpdate(int lambdaId, int userId) {
         Lambda lambda = lambdaDao.getLambdaForUpdate(lambdaId, userId);
         if (lambda == null) {
@@ -179,6 +185,7 @@ public class LambdaManagementServiceImpl implements LambdaManagementService {
             logger.debug(">promoteTestVersionToProduction() userId=" + userId + ", lambdaId=" + lambdaId);
         }
         Lambda lambda = getLambdaForUpdate(lambdaId, userId);
+        requireTeamOwner(userId, lambda);
         Integer lambdaVersionIdToDeleteErrors = null;
 
         LambdaVersionState lambdaVersionState = LambdaVersionState.of(lambdaDao.getLambdaVersionsForUpdate(lambda.lambdaId), false);
@@ -251,6 +258,7 @@ public class LambdaManagementServiceImpl implements LambdaManagementService {
         logger.debug(">rollbackProductionVersion() userId=" + userId + ", lambdaId=" + lambdaId);
 
         Lambda lambda = getLambdaForUpdate(lambdaId, userId);
+        requireTeamOwner(userId, lambda);
 
         LambdaVersionState lambdaVersionFamily = LambdaVersionState.of(lambdaDao.getLambdaVersionsForUpdate(lambda.lambdaId), false);
         LambdaVersion pubVersion = lambdaVersionFamily.pubVersion;
@@ -307,6 +315,7 @@ public class LambdaManagementServiceImpl implements LambdaManagementService {
             logger.debug(">deleteLambdaActiveVersions() userId=" + userId + ", lambdaId=" + lambdaId);
         }
         Lambda lambda = getLambdaForUpdate(lambdaId, userId);
+        requireTeamOwner(userId, lambda);
         lambdaDao.deleteLambdaActiveVersions(lambdaId);
 
         logger.debug("<deleteLambdaActiveVersions()");

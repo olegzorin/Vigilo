@@ -1,14 +1,12 @@
 package dev.olegz.vf.api.account;
 
+import dev.olegz.vf.registry.domain.account.AccountType;
 import java.util.List;
 
-import dev.olegz.vf.api.location.ApiLocation;
 import dev.olegz.vf.api.web.support.ActionContext;
 import dev.olegz.vf.api.web.support.ActionResponse;
 import dev.olegz.vf.common.exception.ObjectNotFoundException;
 import dev.olegz.vf.common.util.CollectionOps;
-import dev.olegz.vf.registry.dao.LocationDao;
-import dev.olegz.vf.registry.domain.account.Location;
 import dev.olegz.vf.registry.domain.account.User;
 import dev.olegz.vf.registry.service.account.UserKeyService;
 import dev.olegz.vf.registry.service.account.UserService;
@@ -23,22 +21,21 @@ public class UserAction {
 
     private final UserService userService;
     private final UserKeyService userKeyService;
-    private final LocationDao locationDao;
 
-    public UserAction(UserService userService, UserKeyService userKeyService, LocationDao locationDao) {
+    public UserAction(UserService userService, UserKeyService userKeyService) {
         this.userService = userService;
         this.userKeyService = userKeyService;
-        this.locationDao = locationDao;
     }
 
     public Response createUser(ActionContext ctx, CreateUserRequest request) {
         logger.debug(">createUser() username={}", request.username);
 
-        // Only an admin may create users, and only non-admin users within their own organization.
+        // Administrators provision developer login accounts separately from resident records.
         ctx.requireAdmin();
         ctx.requireSameOrganization(request.organizationId);
 
         User user = new User();
+        user.accountType = AccountType.DEVELOPER;
         user.username = request.username;
         user.firstName = request.firstName;
         user.lastName = request.lastName;
@@ -63,7 +60,6 @@ public class UserAction {
 
         AuthenticationResponse response = new AuthenticationResponse();
         response.user = new ApiUser(user);
-        response.location = toApiLocation(locationDao.getLocationByUser(user));
         response.apiKey = userKeyService.createUserKey(user.userId);
 
         logger.debug("<authenticate() userId={}", user.userId);
@@ -161,10 +157,6 @@ public class UserAction {
 
     public static class AuthenticationResponse extends Response {
         public String apiKey;
-        public ApiLocation location;
     }
 
-    private static ApiLocation toApiLocation(Location location) {
-        return location == null ? null : new ApiLocation(location);
-    }
 }

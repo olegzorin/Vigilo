@@ -13,7 +13,7 @@ including caregiver and medical workflows.
 | foundation | Common library shared by all modules: utilities, logging, properties, JSON mapping, exceptions                                             |
 | aws        | AWS SDK v2 access layer: client factories, credentials/region/retry config, and service gateways (S3, CloudWatch Logs, SQS, IAM, ECR, IoT) |
 | messaging  | Broker-agnostic message streaming layer (producer/listener SPI) with a Kafka implementation                                                |
-| registry   | Organizations, locations, users, devices, their CRUD operations, and user authorization; independent of AWS and messaging                |
+| registry   | Organizations, residents, login accounts, locations, devices, their CRUD operations, and user authorization; independent of AWS and messaging                |
 | core       | Lambda development, deployment, assignment, execution, state, scheduling, and integration services; depends on registry                     |
 | worker     | Asynchronous data streaming and processing, including cron-expression task scheduling                                                      |
 | api        | REST API: user accounts, lambda configuration, lambda deployment, and developer teams                                                            |
@@ -24,3 +24,6 @@ including caregiver and medical workflows.
 - [Concepts](docs/concepts.md) — project goals, domain language, reliability, and security model.
 - [Architecture and processes](docs/architecture-and-processes.md) — module boundaries, runtime topology, and end-to-end flows.
 - [Local installation and deployment](docs/local-installation.md) — configure PostgreSQL, Kafka, local AWS substitutes, reports, API, and worker.
+
+Resident and developer access rules and the manual upgrade procedure are documented in
+[User access model](docs/user-access-model.md).

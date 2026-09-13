@@ -12,6 +12,8 @@ public interface DevTeamMapper {
 
     DevTeam selectDevTeam(int devTeamId);
 
+    List<DevTeam> selectTeamsByTestingLocation(int locationId);
+
     boolean checkDevTeamMember(
         @Param("devTeamId") int devTeamId,
         @Param("userId") int userId);
@@ -30,4 +32,9 @@ public interface DevTeamMapper {
         @Param("devTeamId") int devTeamId,
         @Param("userId") int userId);
 
+    boolean hasTestingLocationAccess(@Param("userId") int userId, @Param("locationId") int locationId);
+    void grantTestingLocation(@Param("devTeamId") int devTeamId, @Param("locationId") int locationId);
+    void revokeTestingLocation(@Param("devTeamId") int devTeamId, @Param("locationId") int locationId);
+    Integer lockTeam(int devTeamId);
+    void updateOwner(@Param("devTeamId") int devTeamId, @Param("userId") int userId);
 }

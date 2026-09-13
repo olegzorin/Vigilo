@@ -100,58 +100,65 @@ paths:
 
   /vf/users:
     get:
-      tags: [Users]
+      tags:
+      - Users
       summary: Search users
-      description: |
-        Returns non-deleted users whose fields contain all supplied filters (case-insensitive).
-        Organization admins can search users in their organization; ordinary users can only
+      description: 'Returns non-deleted users whose fields contain all supplied filters (case-insensitive).
+
+        Organization admins can search users in their organization; developers can only
+
         receive their own account.
+
+        '
       operationId: getUsers
       parameters:
-        - name: firstName
-          in: query
-          schema: { type: string }
-        - name: lastName
-          in: query
-          schema: { type: string }
-        - name: email
-          in: query
-          schema: { type: string }
+      - name: firstName
+        in: query
+        schema:
+          type: string
+      - name: lastName
+        in: query
+        schema:
+          type: string
+      - name: email
+        in: query
+        schema:
+          type: string
       responses:
         '200':
           $ref: '#/components/responses/UsersResult'
     post:
-      tags: [Users]
-      summary: Create a user
-      description: |
-        Creates a non-admin user. Only an admin may call this, and only for their
-        own organization (`organizationId` must match the caller's organization).
+      tags:
+      - Users
+      summary: Register a developer login account
+      description: Organization administrator only. Creates a DEVELOPER login account in the caller organization.
+        Register monitored people using /vf/residents; residents have no credentials.
       operationId: createUser
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateUserRequest' }
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
       responses:
         '200':
           $ref: '#/components/responses/UserResult'
 
   /vf/users/authenticate:
     post:
-      tags: [Users]
+      tags:
+      - Users
       summary: Authenticate a user
-      description: |
-        Verifies username/password and returns the user together with a freshly
-        minted, signed `API_KEY` and the user's currently assigned location, if
-        any. Use the key in the `API_KEY` header on all other endpoints. Does not
-        require an API key.
+      description: Authenticates a login account and returns its profile and signed API_KEY. Resident records
+        cannot authenticate. No location assignment is returned.
       operationId: authenticate
       security: []
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/AuthenticateRequest' }
+            schema:
+              $ref: '#/components/schemas/AuthenticateRequest'
       responses:
         '200':
           $ref: '#/components/responses/AuthenticationResult'
@@ -208,69 +215,82 @@ paths:
 
   /vf/locations:
     get:
-      tags: [Locations]
+      tags:
+      - Locations
       summary: List organization locations
-      description: Admin-only. Returns every non-deleted location in the caller's organization.
+      description: Administrators see all locations in their organization. Developers see only testing locations
+        granted to their active teams.
       operationId: listLocations
       responses:
         '200':
           description: Visible locations envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/LocationsResponse' }
+              schema:
+                $ref: '#/components/schemas/LocationsResponse'
     post:
-      tags: [Locations]
+      tags:
+      - Locations
       summary: Create a location
-      description: Admin-only. The location must belong to the caller's organization.
+      description: Organization administrator only. Creates an OPERATIONAL or TESTING location. Location type
+        cannot subsequently be changed.
       operationId: createLocation
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateLocationRequest' }
+            schema:
+              $ref: '#/components/schemas/CreateLocationRequest'
       responses:
         '200':
           $ref: '#/components/responses/LocationResult'
 
   /vf/locations/{locationId}:
     get:
-      tags: [Locations]
+      tags:
+      - Locations
       summary: Get a location
-      description: Admin-only. Returns a location in the caller's organization, its current state when available, and all users with active assignments to it.
+      description: Administrators may inspect organization locations. Developers may inspect granted testing
+        locations. Returns current state and resident records, which confer no login access.
       operationId: getLocation
       parameters:
-        - $ref: '#/components/parameters/LocationIdPath'
+      - $ref: '#/components/parameters/LocationIdPath'
       responses:
         '200':
           $ref: '#/components/responses/LocationDetailResult'
     put:
-      tags: [Locations]
+      tags:
+      - Locations
       summary: Update a location
-      description: Admin-only. Replaces the location name and address; identity, organization, and lifecycle dates are preserved.
+      description: Admin-only. Replaces the location name and address; identity, organization, and lifecycle
+        dates are preserved.
       operationId: updateLocation
       parameters:
-        - $ref: '#/components/parameters/LocationIdPath'
+      - $ref: '#/components/parameters/LocationIdPath'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/UpdateLocationRequest' }
+            schema:
+              $ref: '#/components/schemas/UpdateLocationRequest'
       responses:
         '200':
           $ref: '#/components/responses/LocationResult'
     delete:
-      tags: [Locations]
+      tags:
+      - Locations
       summary: Delete a location
-      description: Admin-only. Permanently marks the location deleted only when it has no active user or device assignments.
+      description: Organization administrator only. Soft deletion is blocked by active resident or device assignments.
       operationId: deleteLocation
       parameters:
-        - $ref: '#/components/parameters/LocationIdPath'
+      - $ref: '#/components/parameters/LocationIdPath'
       responses:
         '200':
           description: Empty success envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
 
   /vf/locations/{locationId}/current-state:
     put:
@@ -296,64 +316,41 @@ paths:
             application/json:
               schema: { $ref: '#/components/schemas/LocationCurrentStateResponse' }
 
-  /vf/locations/{locationId}/users/{userId}:
-    post:
-      tags: [Locations]
-      summary: Assign a user to a location
-      description: Admin-only. The user and location must belong to the caller's organization, and the user must have no other active location assignment.
-      operationId: assignUserToLocation
-      parameters:
-        - $ref: '#/components/parameters/LocationIdPath'
-        - $ref: '#/components/parameters/UserIdPath'
-      responses:
-        '200':
-          description: Created assignment envelope (check resultCode).
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/UserLocationResponse' }
-    delete:
-      tags: [Locations]
-      summary: Cancel a user's location assignment
-      description: Admin-only. Closes the active assignment by setting its endDate; assignment history is retained.
-      operationId: cancelUserLocationAssignment
-      parameters:
-        - $ref: '#/components/parameters/LocationIdPath'
-        - $ref: '#/components/parameters/UserIdPath'
-      responses:
-        '200':
-          description: Empty success envelope (check resultCode).
-          content:
-            application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
-
   /vf/devices:
     get:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: List devices
-      description: |
-        Organization admins receive devices in their organization. Ordinary users
-        receive only devices actively assigned to their current location. Every
-        device includes compact active-assignment metadata, if any. Assignment
-        location details and current state are omitted from list responses.
+      description: Administrators may read organization devices. Developers may read only devices at granted
+        testing locations; listing requires an explicit locationId.
       operationId: listDevices
       parameters:
-        - name: typeId
-          in: query
-          required: false
-          description: Restrict results to this device type.
-          schema: { type: integer, format: int32, minimum: 1 }
-        - name: locationId
-          in: query
-          required: false
-          description: |
-            Restrict results to devices actively assigned to this location.
-            Ordinary users may specify only their current location.
-          schema: { type: integer, format: int32, minimum: 1 }
+      - name: typeId
+        in: query
+        required: false
+        description: Restrict results to this device type.
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+      - name: locationId
+        in: query
+        required: false
+        description: 'Restrict results to devices actively assigned to this location.
+
+          Ordinary users may specify only their current location.
+
+          '
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
       responses:
         '200':
           $ref: '#/components/responses/DevicesResult'
     post:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Create a device
       description: Admin-only. Creates a device in the caller's organization.
       operationId: createDevice
@@ -361,38 +358,39 @@ paths:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateDeviceRequest' }
+            schema:
+              $ref: '#/components/schemas/CreateDeviceRequest'
       responses:
         '200':
           $ref: '#/components/responses/DeviceResult'
 
   /vf/devices/{deviceUuid}:
     get:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Get a device
-      description: |
-        Organization admins may retrieve any device in their organization.
-        Ordinary users may retrieve a device only while it is actively assigned
-        to their current location. The response includes the device's current
-        state and its measurement and receipt timestamps, when available.
+      description: Administrators may read organization devices. Developers may read only devices at granted
+        testing locations; listing requires an explicit locationId.
       operationId: getDevice
       parameters:
-        - $ref: '#/components/parameters/DeviceUuidPath'
+      - $ref: '#/components/parameters/DeviceUuidPath'
       responses:
         '200':
           $ref: '#/components/responses/DeviceDetailResult'
     put:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Update a device
       description: Admin-only. Updates a device in the caller's organization.
       operationId: updateDevice
       parameters:
-        - $ref: '#/components/parameters/DeviceUuidPath'
+      - $ref: '#/components/parameters/DeviceUuidPath'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/UpdateDeviceRequest' }
+            schema:
+              $ref: '#/components/schemas/UpdateDeviceRequest'
       responses:
         '200':
           $ref: '#/components/responses/DeviceResult'
@@ -423,32 +421,34 @@ paths:
 
   /vf/locations/{locationId}/devices/{deviceUuid}:
     post:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Assign a device to a location
-      description: |
-        Admin-only. The device and location must belong to the caller's
-        organization, and the device must have no other active location assignment.
+      description: Organization administrator only. Device and location must belong to the caller organization
+        and their test/operational designation must match. Device must have no other active assignment.
       operationId: assignDeviceToLocation
       parameters:
-        - $ref: '#/components/parameters/LocationIdPath'
-        - $ref: '#/components/parameters/DeviceUuidPath'
+      - $ref: '#/components/parameters/LocationIdPath'
+      - $ref: '#/components/parameters/DeviceUuidPath'
       responses:
         '200':
           $ref: '#/components/responses/DeviceLocationAssignmentResult'
     delete:
-      tags: [Devices]
+      tags:
+      - Devices
       summary: Cancel a device location assignment
       description: Admin-only. Closes the active assignment and retains its history.
       operationId: cancelDeviceLocationAssignment
       parameters:
-        - $ref: '#/components/parameters/LocationIdPath'
-        - $ref: '#/components/parameters/DeviceUuidPath'
+      - $ref: '#/components/parameters/LocationIdPath'
+      - $ref: '#/components/parameters/DeviceUuidPath'
       responses:
         '200':
           description: Empty success envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
 
   /vf/start:
     post:
@@ -588,190 +588,255 @@ paths:
 
   /vf/teams:
     get:
-      tags: [Dev Teams]
+      tags:
+      - Dev Teams
       summary: List developer teams
-      description: Lists dev teams, optionally filtered to those a given user belongs to.
+      description: Administrators list teams within their organization, optionally filtered by member userId.
+        Developers list their own active teams only.
       operationId: listDevTeams
       parameters:
-        - name: userId
-          in: query
-          required: false
-          description: Restrict results to teams this user is a member of.
-          schema: { type: integer, format: int32 }
+      - name: userId
+        in: query
+        required: false
+        description: Restrict results to teams this user is a member of.
+        schema:
+          type: integer
+          format: int32
       responses:
         '200':
           description: Teams envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/DevTeamsResponse' }
+              schema:
+                $ref: '#/components/schemas/DevTeamsResponse'
     post:
-      tags: [Dev Teams]
+      tags:
+      - Dev Teams
       summary: Create a developer team
-      description: Creates a team owned by the caller. The owner is added as an active team member automatically.
+      description: Organization administrator only. Designates a developer account in the same organization as
+        owner, adds the owner as a member, and atomically creates and grants a default testing location.
       operationId: createDevTeam
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateDevTeamRequest' }
+            schema:
+              $ref: '#/components/schemas/CreateDevTeamRequest'
       responses:
         '200':
           description: Created team envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/DevTeamResponse' }
+              schema:
+                $ref: '#/components/schemas/DevTeamResponse'
 
   /vf/teams/{devTeamId}:
     get:
-      tags: [Dev Teams]
+      tags:
+      - Dev Teams
       summary: Get a developer team
       operationId: getDevTeam
       parameters:
-        - name: devTeamId
-          in: path
-          required: true
-          schema: { type: integer, format: int32 }
+      - name: devTeamId
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int32
       responses:
         '200':
           description: Team envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/DevTeamResponse' }
+              schema:
+                $ref: '#/components/schemas/DevTeamResponse'
+      description: Accessible to the team organization administrator and active team members only.
 
   /vf/teams/{devTeamId}/users/{userId}:
     post:
-      tags: [Dev Teams]
+      tags:
+      - Dev Teams
       summary: Add a developer team member
-      description: Owner-only. Adds the user as an active member of the team.
+      description: Organization administrator only. Members must be developer login accounts in the team organization.
+        Transfer ownership before removing an owner; removed members immediately lose inherited testing access.
       operationId: addDevTeamMember
       parameters:
-        - $ref: '#/components/parameters/DevTeamIdPath'
-        - $ref: '#/components/parameters/UserIdPath'
+      - $ref: '#/components/parameters/DevTeamIdPath'
+      - $ref: '#/components/parameters/UserIdPath'
       responses:
         '200':
           description: Empty success envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
     delete:
-      tags: [Dev Teams]
+      tags:
+      - Dev Teams
       summary: Remove a developer team member
-      description: Owner-only. The owner cannot remove themselves from the team.
+      description: Organization administrator only. Members must be developer login accounts in the team organization.
+        Transfer ownership before removing an owner; removed members immediately lose inherited testing access.
       operationId: deleteDevTeamMember
       parameters:
-        - $ref: '#/components/parameters/DevTeamIdPath'
-        - $ref: '#/components/parameters/UserIdPath'
+      - $ref: '#/components/parameters/DevTeamIdPath'
+      - $ref: '#/components/parameters/UserIdPath'
       responses:
         '200':
           description: Empty success envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
 
   /vf/lambda-assignments:
     get:
-      tags: [Lambda Assignments]
+      tags:
+      - Lambda Assignments
       summary: List lambda assignments
-      description: |
-        Lists assignments visible to the caller. Supply exactly one filter: `lambdaId`
-        or `locationId`.
+      description: Organization administrators operate assignments within their organization. Developers require
+        access to the testing location AND membership in the lambda team. Test versions cannot be assigned to
+        operational locations. Production selection requires a runnable published version. Bulk operations affect
+        only assignments within the caller access scope.
       operationId: getLambdaAssignments
       parameters:
-        - name: lambdaId
-          in: query
-          required: false
-          schema: { type: integer, format: int32, minimum: 1 }
-        - name: locationId
-          in: query
-          required: false
-          schema: { type: integer, format: int32, minimum: 1 }
+      - name: lambdaId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+      - name: locationId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
       responses:
         '200':
           $ref: '#/components/responses/LambdaAssignmentResult'
     post:
-      tags: [Lambda Assignments]
+      tags:
+      - Lambda Assignments
       summary: Create a lambda assignment
       operationId: createLambdaAssignment
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/CreateLambdaAssignmentRequest' }
+            schema:
+              $ref: '#/components/schemas/CreateLambdaAssignmentRequest'
       responses:
         '200':
           $ref: '#/components/responses/LambdaAssignmentResult'
+      description: Organization administrators operate assignments within their organization. Developers require
+        access to the testing location AND membership in the lambda team. Test versions cannot be assigned to
+        operational locations. Production selection requires a runnable published version. Bulk operations affect
+        only assignments within the caller access scope.
     delete:
-      tags: [Lambda Assignments]
+      tags:
+      - Lambda Assignments
       summary: Cancel lambda assignments by lambda or location
-      description: Supply exactly one filter, `lambdaId` or `locationId`, to cancel matching assignments.
+      description: Organization administrators operate assignments within their organization. Developers require
+        access to the testing location AND membership in the lambda team. Test versions cannot be assigned to
+        operational locations. Production selection requires a runnable published version. Bulk operations affect
+        only assignments within the caller access scope.
       operationId: cancelLambdaAssignments
       parameters:
-        - name: lambdaId
-          in: query
-          required: false
-          schema: { type: integer, format: int32, minimum: 1 }
-        - name: locationId
-          in: query
-          required: false
-          schema: { type: integer, format: int32, minimum: 1 }
+      - name: lambdaId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
+      - name: locationId
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
       responses:
         '200':
           description: Empty success envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
 
   /vf/lambda-assignments/{lambdaAssignmentId}:
     get:
-      tags: [Lambda Assignments]
+      tags:
+      - Lambda Assignments
       summary: Get a lambda assignment
       operationId: getLambdaAssignment
       parameters:
-        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      - $ref: '#/components/parameters/LambdaAssignmentIdPath'
       responses:
         '200':
           $ref: '#/components/responses/LambdaAssignmentResult'
+      description: Organization administrators operate assignments within their organization. Developers require
+        access to the testing location AND membership in the lambda team. Test versions cannot be assigned to
+        operational locations. Production selection requires a runnable published version. Bulk operations affect
+        only assignments within the caller access scope.
     put:
-      tags: [Lambda Assignments]
+      tags:
+      - Lambda Assignments
       summary: Enable or disable a lambda assignment
       operationId: updateLambdaAssignment
       parameters:
-        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      - $ref: '#/components/parameters/LambdaAssignmentIdPath'
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: '#/components/schemas/UpdateLambdaAssignmentRequest' }
+            schema:
+              $ref: '#/components/schemas/UpdateLambdaAssignmentRequest'
       responses:
         '200':
           description: Empty success envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
+      description: Organization administrators operate assignments within their organization. Developers require
+        access to the testing location AND membership in the lambda team. Test versions cannot be assigned to
+        operational locations. Production selection requires a runnable published version. Bulk operations affect
+        only assignments within the caller access scope.
     delete:
-      tags: [Lambda Assignments]
+      tags:
+      - Lambda Assignments
       summary: Cancel a lambda assignment
       operationId: cancelLambdaAssignment
       parameters:
-        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      - $ref: '#/components/parameters/LambdaAssignmentIdPath'
       responses:
         '200':
           description: Empty success envelope (check resultCode).
           content:
             application/json:
-              schema: { $ref: '#/components/schemas/ActionResponse' }
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
+      description: Organization administrators operate assignments within their organization. Developers require
+        access to the testing location AND membership in the lambda team. Test versions cannot be assigned to
+        operational locations. Production selection requires a runnable published version. Bulk operations affect
+        only assignments within the caller access scope.
 
   /vf/lambda-assignments/{lambdaAssignmentId}/lambda-api-key:
     post:
-      tags: [Lambda Assignments]
+      tags:
+      - Lambda Assignments
       summary: Generate a lambda API key for a lambda assignment
-      description: |
-        Generates a time-limited key for manual lambda API calls. The caller must be
-        the assignment location's assigned user or the location organization's admin.
-        Send the returned key in the `LAMBDA_API_KEY` header.
+      description: Organization administrators operate assignments within their organization. Developers require
+        access to the testing location AND membership in the lambda team. Test versions cannot be assigned to
+        operational locations. Production selection requires a runnable published version. Bulk operations affect
+        only assignments within the caller access scope. Manually issued keys recheck the issuing account and
+        its current location/team access on every request.
       operationId: generateLambdaAssignmentApiKey
       parameters:
-        - $ref: '#/components/parameters/LambdaAssignmentIdPath'
+      - $ref: '#/components/parameters/LambdaAssignmentIdPath'
       responses:
         '200':
           $ref: '#/components/responses/LambdaAssignmentApiKeyResult'
@@ -872,15 +937,19 @@ paths:
 
   /vf/lambdas/versions/promote:
     put:
-      tags: [Lambda Configuration]
+      tags:
+      - Lambda Configuration
       summary: Promote the test version to production
-      description: Promotes the lambda's version under test to production and retains the previous production version as the rollback fallback.
+      description: Team owner only. Requires active developer membership in the lambda team.
       operationId: promoteTestVersionToProduction
       parameters:
-        - name: lambdaId
-          in: query
-          required: true
-          schema: { type: integer, format: int32, minimum: 1 }
+      - name: lambdaId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
       responses:
         '200':
           $ref: '#/components/responses/LambdaConfigResult'
@@ -902,15 +971,19 @@ paths:
 
   /vf/lambdas/versions/rollback:
     put:
-      tags: [Lambda Configuration]
+      tags:
+      - Lambda Configuration
       summary: Roll back the production version
-      description: Archives the current production version and restores the fallback version to production.
+      description: Team owner only. Requires active developer membership in the lambda team.
       operationId: rollbackProductionVersion
       parameters:
-        - name: lambdaId
-          in: query
-          required: true
-          schema: { type: integer, format: int32, minimum: 1 }
+      - name: lambdaId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
+          minimum: 1
       responses:
         '200':
           $ref: '#/components/responses/LambdaConfigResult'
@@ -984,78 +1057,160 @@ paths:
 
   /vf/reports/groups/{organizationId}:
     get:
-      tags: [Reports]
+      tags:
+      - Reports
       summary: List report groups assigned to an organization
       operationId: getReportGroups
       parameters:
-        - $ref: '#/components/parameters/OrganizationIdPath'
-        - { name: analytic, in: query, schema: { type: boolean } }
-        - { name: all, in: query, schema: { type: boolean, default: true } }
+      - $ref: '#/components/parameters/OrganizationIdPath'
+      - name: analytic
+        in: query
+        schema:
+          type: boolean
+      - name: all
+        in: query
+        schema:
+          type: boolean
+          default: true
       responses:
-        '200': { $ref: '#/components/responses/ReportsResult' }
+        '200':
+          $ref: '#/components/responses/ReportsResult'
+      description: Organization administrator only. Omitted organizationId defaults to the caller organization;
+        an explicit organization must match. Operational reports exclude testing locations and synthetic residents.
     put:
-      tags: [Reports]
+      tags:
+      - Reports
       summary: Assign a report group to an organization
-      description: |
-        Requires the caller to be the administrator of the target organization or one of its ancestors.
-        If the organization already inherits the report group from itself or an ancestor, the operation
-        succeeds without making changes. Otherwise, the direct assignment is created and any direct
-        assignments of the same report group to descendant organizations are removed.
+      description: Organization administrator only. Omitted organizationId defaults to the caller organization;
+        an explicit organization must match. Operational reports exclude testing locations and synthetic residents.
       operationId: putReportGroupOrganization
       parameters:
-        - $ref: '#/components/parameters/OrganizationIdPath'
-        - { name: reportGroupId, in: query, required: true, schema: { type: integer, format: int32 } }
+      - $ref: '#/components/parameters/OrganizationIdPath'
+      - name: reportGroupId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
       responses:
-        '200': { $ref: '#/components/responses/ReportsResult' }
+        '200':
+          $ref: '#/components/responses/ReportsResult'
     delete:
-      tags: [Reports]
+      tags:
+      - Reports
       summary: Remove a report-group assignment
       operationId: deleteReportGroupOrganization
       parameters:
-        - $ref: '#/components/parameters/OrganizationIdPath'
-        - { name: reportGroupId, in: query, required: true, schema: { type: integer, format: int32 } }
+      - $ref: '#/components/parameters/OrganizationIdPath'
+      - name: reportGroupId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
       responses:
-        '200': { $ref: '#/components/responses/ReportsResult' }
+        '200':
+          $ref: '#/components/responses/ReportsResult'
+      description: Organization administrator only. Omitted organizationId defaults to the caller organization;
+        an explicit organization must match. Operational reports exclude testing locations and synthetic residents.
 
   /vf/reports/reports:
     get:
-      tags: [Reports]
+      tags:
+      - Reports
       summary: List available reports
       operationId: getReports
       parameters:
-        - { name: reportId, in: query, schema: { type: integer, format: int32 } }
-        - { name: organizationId, in: query, schema: { type: integer, format: int32 } }
-        - { name: reportGroupId, in: query, schema: { type: integer, format: int32 } }
-        - { name: analytic, in: query, schema: { type: boolean } }
+      - name: reportId
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: organizationId
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: reportGroupId
+        in: query
+        schema:
+          type: integer
+          format: int32
+      - name: analytic
+        in: query
+        schema:
+          type: boolean
       responses:
-        '200': { $ref: '#/components/responses/ReportsResult' }
+        '200':
+          $ref: '#/components/responses/ReportsResult'
+      description: Organization administrator only. Omitted organizationId defaults to the caller organization;
+        an explicit organization must match. Operational reports exclude testing locations and synthetic residents.
 
   /vf/reports/data:
     get:
-      tags: [Reports]
+      tags:
+      - Reports
       summary: List scheduled report executions
-      description: Summary executions expose one-day signed download URLs. Analytic execution data is returned inline.
+      description: Organization administrator only. Omitted organizationId defaults to the caller organization;
+        an explicit organization must match. Operational reports exclude testing locations and synthetic residents.
       operationId: getReportExecutions
       parameters:
-        - { name: startDate, in: query, required: true, schema: { type: string, format: date-time } }
-        - { name: endDate, in: query, required: true, schema: { type: string, format: date-time } }
-        - { name: reportId, in: query, required: true, schema: { type: integer, format: int32 } }
-        - { name: reportGroupId, in: query, required: true, schema: { type: integer, format: int32 } }
-        - { name: organizationId, in: query, schema: { type: integer, format: int32 } }
+      - name: startDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: endDate
+        in: query
+        required: true
+        schema:
+          type: string
+          format: date-time
+      - name: reportId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: reportGroupId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: organizationId
+        in: query
+        schema:
+          type: integer
+          format: int32
       responses:
-        '200': { $ref: '#/components/responses/ReportsResult' }
+        '200':
+          $ref: '#/components/responses/ReportsResult'
 
   /vf/reports/generate:
     get:
-      tags: [Reports]
+      tags:
+      - Reports
       summary: Generate an on-demand report into database-backed history
-      description: Report-specific query parameters are accepted in addition to the parameters documented here. Compressed output up to 64,000 bytes is stored in execution history; larger ZIPs are stored in the configured reports S3 bucket under the execution object ID.
+      description: Organization administrator only. Omitted organizationId defaults to the caller organization;
+        an explicit organization must match. Operational reports exclude testing locations and synthetic residents.
       operationId: generateReport
       parameters:
-        - { name: reportId, in: query, required: true, schema: { type: integer, format: int32 } }
-        - { name: organizationId, in: query, schema: { type: integer, format: int32 } }
+      - name: reportId
+        in: query
+        required: true
+        schema:
+          type: integer
+          format: int32
+      - name: organizationId
+        in: query
+        schema:
+          type: integer
+          format: int32
       responses:
-        '200': { $ref: '#/components/responses/ReportsResult' }
+        '200':
+          $ref: '#/components/responses/ReportsResult'
 
   /vf/reports/data/{token}:
     get:
@@ -1082,6 +1237,210 @@ paths:
             text/plain: { schema: { type: string } }
         '401': { description: The report JWT is invalid or expired. }
         '404': { description: No execution exists for the token's object ID. }
+
+  /vf/locations/{locationId}/residents/{residentId}:
+    post:
+      tags:
+      - Locations
+      summary: Assign a resident to a location
+      description: Organization administrator only. Resident and location must belong to the caller organization.
+        Real residents can only be assigned to operational locations; synthetic residents to testing locations.
+        A resident has at most one active assignment. Cancellation retains history.
+      operationId: assignResidentToLocation
+      parameters:
+      - $ref: '#/components/parameters/LocationIdPath'
+      - name: residentId
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Created assignment envelope (check resultCode).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResidentLocationResponse'
+    delete:
+      tags:
+      - Locations
+      summary: Cancel a resident's location assignment
+      description: Organization administrator only. Resident and location must belong to the caller organization.
+        Real residents can only be assigned to operational locations; synthetic residents to testing locations.
+        A resident has at most one active assignment. Cancellation retains history.
+      operationId: cancelResidentLocationAssignment
+      parameters:
+      - $ref: '#/components/parameters/LocationIdPath'
+      - name: residentId
+        in: path
+        required: true
+        schema: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Empty success envelope (check resultCode).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
+  /vf/residents:
+    get:
+      tags:
+      - Residents
+      summary: List organization residents (administrator only)
+      security:
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResidentResponse'
+    post:
+      tags:
+      - Residents
+      summary: Register a resident without credentials (administrator only)
+      security:
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResidentResponse'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateResidentRequest'
+  /vf/residents/{residentId}:
+    get:
+      tags:
+      - Residents
+      summary: Get a resident (administrator only)
+      security:
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResidentResponse'
+      parameters:
+      - name: residentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    put:
+      tags:
+      - Residents
+      summary: Update resident profile (administrator only)
+      security:
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResidentResponse'
+      parameters:
+      - name: residentId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateResidentRequest'
+  /vf/teams/{devTeamId}/owner/{userId}:
+    put:
+      tags:
+      - Developer teams
+      summary: Transfer team ownership to an active developer member (organization administrator only)
+      security:
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
+      parameters:
+      - name: devTeamId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - name: userId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+  /vf/teams/{devTeamId}/testing-locations/{locationId}:
+    put:
+      tags:
+      - Developer teams
+      summary: Grant or revoke team access to a testing location in the same organization (administrator only)
+      security:
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
+      parameters:
+      - name: devTeamId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - name: locationId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+    delete:
+      tags:
+      - Developer teams
+      summary: Grant or revoke team access to a testing location in the same organization (administrator only)
+      security:
+      - ApiKeyAuth: []
+      responses:
+        '200':
+          description: Action result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActionResponse'
+      parameters:
+      - name: devTeamId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
+      - name: locationId
+        in: path
+        required: true
+        schema:
+          type: integer
+          minimum: 1
 
 components:
   securitySchemes:
@@ -1196,7 +1555,7 @@ components:
       description: |
         Location-detail envelope, always HTTP 200. On success `resultCode` is 0,
         `location` is populated with its current state when available, and `users`
-        contains all actively assigned users.
+        contains all actively assigned residents.
       content:
         application/json:
           schema: { $ref: '#/components/schemas/LocationDetailResponse' }
@@ -1406,26 +1765,24 @@ components:
 
     LocationDetailResponse:
       allOf:
-        - $ref: '#/components/schemas/ActionResponse'
-        - type: object
-          properties:
-            location: { $ref: '#/components/schemas/ApiLocationDetails' }
-            users:
-              type: array
-              items: { $ref: '#/components/schemas/ApiUser' }
-
-    UserLocationResponse:
-      allOf:
-        - $ref: '#/components/schemas/ActionResponse'
-        - type: object
-          properties:
-            assignment: { $ref: '#/components/schemas/ApiUserLocation' }
+      - $ref: '#/components/schemas/ActionResponse'
+      - type: object
+        properties:
+          location:
+            $ref: '#/components/schemas/ApiLocationDetails'
+          residents:
+            type: array
+            items:
+              $ref: '#/components/schemas/Resident'
 
     ApiLocation:
       type: object
       properties:
-        locationId: { type: integer, format: int32 }
-        locationName: { type: string }
+        locationId:
+          type: integer
+          format: int32
+        locationName:
+          type: string
         createdAt:
           type: string
           format: date-time
@@ -1437,14 +1794,29 @@ components:
           nullable: true
           readOnly: true
           description: Any non-null value means the location is permanently deleted.
-        organizationId: { type: integer, format: int32 }
-        address: { $ref: '#/components/schemas/ApiAddress' }
+        organizationId:
+          type: integer
+          format: int32
+        address:
+          $ref: '#/components/schemas/ApiAddress'
+        locationType:
+          type: string
+          enum:
+          - OPERATIONAL
+          - TESTING
+          default: OPERATIONAL
+          description: Immutable environment type. Testing grants never grant operational access.
 
     ApiLocationDetails:
       allOf:
         - $ref: '#/components/schemas/ApiLocation'
         - type: object
           properties:
+            grantedTeams:
+              type: array
+              description: Teams granted this testing location. Administrators see all teams in their organization; developers see only their active teams. Empty for operational locations.
+              items:
+                $ref: '#/components/schemas/ApiGrantedTeam'
             currentState:
               description: Current location state, or null when no state has been recorded.
               allOf:
@@ -1473,14 +1845,6 @@ components:
         - type: object
           properties:
             currentState: { $ref: '#/components/schemas/ApiLocationCurrentState' }
-
-    ApiUserLocation:
-      type: object
-      properties:
-        userId: { type: integer, format: int32 }
-        locationId: { type: integer, format: int32 }
-        startDate: { type: string, format: date-time }
-        endDate: { type: string, format: date-time, nullable: true }
 
     DeviceResponse:
       allOf:
@@ -1515,19 +1879,38 @@ components:
     ApiDevice:
       type: object
       properties:
-        deviceUuid: { type: string }
-        organizationId: { type: integer, format: int32 }
-        typeId: { type: integer, format: int32 }
-        deviceName: { type: string, nullable: true }
-        serialNumber: { type: string, nullable: true }
-        model: { type: string, nullable: true }
-        vendor: { type: string, nullable: true }
-        manufacturer: { type: string, nullable: true }
+        deviceUuid:
+          type: string
+        organizationId:
+          type: integer
+          format: int32
+        typeId:
+          type: integer
+          format: int32
+        deviceName:
+          type: string
+          nullable: true
+        serialNumber:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        vendor:
+          type: string
+          nullable: true
+        manufacturer:
+          type: string
+          nullable: true
         assignment:
           description: The device's active location assignment, or null when unassigned.
           allOf:
-            - $ref: '#/components/schemas/ApiDeviceAssignment'
+          - $ref: '#/components/schemas/ApiDeviceAssignment'
           nullable: true
+        testing:
+          type: boolean
+          default: false
+          description: Immutable designation. Test devices can only be assigned to testing locations.
 
     ApiDeviceDetails:
       allOf:
@@ -1619,6 +2002,7 @@ components:
           properties:
             alertId: { type: string, format: uuid }
             status: { type: string, enum: [OPEN] }
+            testing: { type: boolean, description: "True for alerts from testing locations; exclude from operational delivery." }
             created:
               type: boolean
               description: False when an identical idempotent request already created the alert.
@@ -1646,16 +2030,40 @@ components:
 
     CreateDeviceRequest:
       type: object
-      required: [deviceUuid, organizationId, typeId]
+      required:
+      - deviceUuid
+      - organizationId
+      - typeId
       properties:
-        deviceUuid: { type: string }
-        organizationId: { type: integer, format: int32, minimum: 1 }
-        typeId: { type: integer, format: int32, minimum: 1 }
-        deviceName: { type: string, nullable: true }
-        serialNumber: { type: string, nullable: true }
-        model: { type: string, nullable: true }
-        vendor: { type: string, nullable: true }
-        manufacturer: { type: string, nullable: true }
+        deviceUuid:
+          type: string
+        organizationId:
+          type: integer
+          format: int32
+          minimum: 1
+        typeId:
+          type: integer
+          format: int32
+          minimum: 1
+        deviceName:
+          type: string
+          nullable: true
+        serialNumber:
+          type: string
+          nullable: true
+        model:
+          type: string
+          nullable: true
+        vendor:
+          type: string
+          nullable: true
+        manufacturer:
+          type: string
+          nullable: true
+        testing:
+          type: boolean
+          default: false
+          description: Immutable designation. Test devices can only be assigned to testing locations.
 
     UpdateDeviceRequest:
       type: object
@@ -1670,11 +2078,26 @@ components:
 
     CreateLocationRequest:
       type: object
-      required: [locationName, organizationId, address]
+      required:
+      - locationName
+      - organizationId
+      - address
       properties:
-        locationName: { type: string }
-        organizationId: { type: integer, format: int32, minimum: 1 }
-        address: { $ref: '#/components/schemas/ApiAddress' }
+        locationName:
+          type: string
+        organizationId:
+          type: integer
+          format: int32
+          minimum: 1
+        address:
+          $ref: '#/components/schemas/ApiAddress'
+        locationType:
+          type: string
+          enum:
+          - OPERATIONAL
+          - TESTING
+          default: OPERATIONAL
+          description: Immutable environment type. Testing grants never grant operational access.
 
     UpdateLocationRequest:
       type: object
@@ -1687,13 +2110,26 @@ components:
       type: object
       description: API view of a user. Never includes the password hash.
       properties:
-        userId: { type: integer, format: int32 }
-        username: { type: string }
-        firstName: { type: string, nullable: true }
-        lastName: { type: string, nullable: true }
-        email: { type: string, nullable: true }
-        phone: { type: string, nullable: true }
-        organizationId: { type: integer, format: int32 }
+        userId:
+          type: integer
+          format: int32
+        username:
+          type: string
+        firstName:
+          type: string
+          nullable: true
+        lastName:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        organizationId:
+          type: integer
+          format: int32
         createdAt:
           type: string
           format: date-time
@@ -1705,6 +2141,11 @@ components:
           nullable: true
           readOnly: true
           description: Any non-null value means the user is permanently deleted.
+        accountType:
+          type: string
+          enum:
+          - ADMINISTRATOR
+          - DEVELOPER
 
     CreateUserRequest:
       type: object
@@ -1727,16 +2168,12 @@ components:
 
     AuthenticationResponse:
       allOf:
-        - $ref: '#/components/schemas/UserResponse'
-        - type: object
-          properties:
-            apiKey:
-              type: string
-              description: Signed, time-limited key to send in the API_KEY header.
-            location:
-              allOf:
-                - $ref: '#/components/schemas/ApiLocation'
-              description: The user's active assigned location. Absent when unassigned.
+      - $ref: '#/components/schemas/UserResponse'
+      - type: object
+        properties:
+          apiKey:
+            type: string
+            description: Signed, time-limited key to send in the API_KEY header.
 
     UpdateProfileRequest:
       type: object
@@ -1770,36 +2207,93 @@ components:
 
     CreateDevTeamRequest:
       type: object
-      required: [name]
+      required:
+      - name
+      - ownerUserId
       properties:
-        name: { type: string, minLength: 1, maxLength: 100 }
-        description: { type: string, maxLength: 1000, nullable: true }
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        description:
+          type: string
+          maxLength: 1000
+          nullable: true
+        ownerUserId:
+          type: integer
+          minimum: 1
 
     ApiDevTeamSummary:
       type: object
-      description: Team as returned by the list endpoint — scalar fields and member/lambda counts, without the nested collections.
+      description: Team as returned by the list endpoint — scalar fields and member/lambda counts, without the
+        nested collections.
       properties:
-        devTeamId: { type: integer, format: int32 }
-        ownerUserId: { type: integer, format: int32 }
-        name: { type: string }
-        description: { type: string, nullable: true }
-        membersCount: { type: integer, format: int32 }
-        lambdasCount: { type: integer, format: int32 }
+        devTeamId:
+          type: integer
+          format: int32
+        ownerUserId:
+          type: integer
+          format: int32
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        membersCount:
+          type: integer
+          format: int32
+        lambdasCount:
+          type: integer
+          format: int32
+        organizationId:
+          type: integer
+          format: int32
+        testingLocationId:
+          type: integer
+          format: int32
 
     ApiDevTeamDetails:
       type: object
-      description: Team as returned by the get-by-id endpoint — scalar fields plus the full member and lambda collections.
+      description: Team as returned by the get-by-id endpoint — scalar fields plus members, lambdas, and all currently granted testing locations.
       properties:
-        devTeamId: { type: integer, format: int32 }
-        ownerUserId: { type: integer, format: int32 }
-        name: { type: string }
-        description: { type: string, nullable: true }
+        devTeamId:
+          type: integer
+          format: int32
+        ownerUserId:
+          type: integer
+          format: int32
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
         members:
           type: array
-          items: { $ref: '#/components/schemas/ApiDevTeamMember' }
+          items:
+            $ref: '#/components/schemas/ApiDevTeamMember'
         lambdas:
           type: array
-          items: { $ref: '#/components/schemas/ApiLambda' }
+          items:
+            $ref: '#/components/schemas/ApiLambda'
+        organizationId:
+          type: integer
+          format: int32
+        testingLocations:
+          type: array
+          description: All granted, non-deleted testing locations, including the default only while its grant remains active. Empty when no grants remain.
+          items:
+            $ref: '#/components/schemas/ApiLocation'
+        testingLocationId:
+          description: Provisioned default location identifier; not evidence of a current access grant.
+          type: integer
+          format: int32
+
+    ApiGrantedTeam:
+      type: object
+      required: [devTeamId, name]
+      properties:
+        devTeamId: { type: integer, format: int32 }
+        name: { type: string }
 
     ApiDevTeamMember:
       type: object
@@ -2023,3 +2517,87 @@ components:
         email: { type: boolean }
         push: { type: boolean }
         sms: { type: boolean }
+
+    ResidentLocationResponse:
+      allOf:
+      - $ref: '#/components/schemas/ActionResponse'
+      - type: object
+        properties:
+          assignment:
+            $ref: '#/components/schemas/ApiResidentLocation'
+    ApiResidentLocation:
+      type: object
+      properties:
+        residentId:
+          type: integer
+          format: int32
+        locationId:
+          type: integer
+          format: int32
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+          nullable: true
+    Resident:
+      type: object
+      description: Monitored person. Has no username, password, API key, or access permissions.
+      properties:
+        residentId:
+          type: integer
+        organizationId:
+          type: integer
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        synthetic:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type:
+          - string
+          - 'null'
+          format: date-time
+    UpdateResidentRequest:
+      type: object
+      required:
+      - firstName
+      - lastName
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+    CreateResidentRequest:
+      allOf:
+      - $ref: '#/components/schemas/UpdateResidentRequest'
+      - type: object
+        properties:
+          synthetic:
+            type: boolean
+            default: false
+            description: Immutable; synthetic residents can only be assigned to testing locations.
+    ResidentResponse:
+      allOf:
+      - $ref: '#/components/schemas/ActionResponse'
+      - type: object
+        properties:
+          resident:
+            $ref: '#/components/schemas/Resident'
+          residents:
+            type: array
+            items:
+              $ref: '#/components/schemas/Resident'

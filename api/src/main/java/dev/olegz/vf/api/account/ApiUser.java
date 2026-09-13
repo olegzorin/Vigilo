@@ -1,5 +1,6 @@
 package dev.olegz.vf.api.account;
 
+import dev.olegz.vf.registry.domain.account.AccountType;
 import dev.olegz.vf.common.Datetime;
 import dev.olegz.vf.registry.domain.account.User;
 
@@ -8,6 +9,7 @@ import dev.olegz.vf.registry.domain.account.User;
  * over the wire.
  */
 public class ApiUser {
+    public final AccountType accountType;
     public final int userId;
     public final String username;
     public final String firstName;
@@ -19,6 +21,7 @@ public class ApiUser {
     public final Datetime deletedAt;
 
     public ApiUser(User user) {
+        this.accountType = user.accountType;
         this.userId = user.userId;
         this.username = user.username;
         this.firstName = user.firstName;

@@ -50,28 +50,51 @@ class LambdaManagementServiceImplTest {
     private final LambdaManagementService lambdaManagementService;
     private final DevTeamMapper devTeamsMapper;
     private final UserDao userDao;
+    private final dev.olegz.vf.registry.dao.OrganizationDao organizations;
+    private final dev.olegz.vf.registry.dao.LocationDao locations;
+    private int organizationId;
     private final LambdaDao lambdaDao;
     private final LambdaCodeUploadDao lambdaCodeUploadDao;
 
     @Autowired
     LambdaManagementServiceImplTest(LambdaManagementService lambdaManagementService,
                                     DevTeamMapper devTeamsMapper, UserDao userDao, LambdaDao lambdaDao,
-                                    LambdaCodeUploadDao lambdaCodeUploadDao) {
+                                    LambdaCodeUploadDao lambdaCodeUploadDao, dev.olegz.vf.registry.dao.OrganizationDao organizations, dev.olegz.vf.registry.dao.LocationDao locations) {
         this.lambdaManagementService = lambdaManagementService;
         this.devTeamsMapper = devTeamsMapper;
         this.userDao = userDao;
+        this.organizations = organizations;
+        this.locations = locations;
         this.lambdaDao = lambdaDao;
         this.lambdaCodeUploadDao = lambdaCodeUploadDao;
     }
 
     private int insertUser() {
+        if (organizationId == 0) {
+            var org = new dev.olegz.vf.registry.domain.account.Organization();
+            org.organizationName = "Test";
+            organizations.insertOrganization(org);
+            organizationId = org.organizationId;
+        }
         User user = new User();
+        user.organizationId = organizationId;
         userDao.insertUser(user);
         return user.userId;
     }
 
+    private void prepareTeam(DevTeam team) {
+        team.organizationId = organizationId;
+        var location = new dev.olegz.vf.registry.domain.account.Location();
+        location.organizationId = organizationId;
+        location.locationType = dev.olegz.vf.registry.domain.account.LocationType.TESTING;
+        location.locationName = "Testing";
+        locations.insertLocation(location);
+        team.testingLocationId = location.locationId;
+    }
+
     private int insertTeam(String name) {
         DevTeam team = new DevTeam(insertUser(), name, null);
+        prepareTeam(team);
         devTeamsMapper.insertDevTeam(team);
         return team.devTeamId;
     }

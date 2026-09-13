@@ -1,9 +1,8 @@
 package dev.olegz.vf.core.service.lambda;
 
-import java.util.ArrayList;
-import java.util.HashSet;
+import dev.olegz.vf.registry.domain.account.LocationType;
+import dev.olegz.vf.registry.service.account.AccessService;
 import java.util.List;
-import java.util.Set;
 
 import dev.olegz.vf.common.exception.AccessDeniedException;
 import dev.olegz.vf.common.exception.ObjectNotFoundException;
@@ -11,7 +10,6 @@ import dev.olegz.vf.core.dao.*;
 import dev.olegz.vf.registry.dao.LocationDao;
 import dev.olegz.vf.registry.dao.OrganizationDao;
 import dev.olegz.vf.registry.domain.account.Location;
-import dev.olegz.vf.registry.domain.account.Organization;
 import dev.olegz.vf.registry.domain.account.User;
 import dev.olegz.vf.core.domain.lambdaassignment.LambdaAssignment;
 import dev.olegz.vf.core.domain.lambdarun.LambdaKeyInput;
@@ -27,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
     private static final Logger logger = LoggerFactory.getLogger(LambdaAssignmentServiceImpl.class);
 
+    private final AccessService access;
     private final LambdaDao lambdaDao;
     private final LambdaAssignmentDao lambdaAssignmentDao;
     private final LambdaAssignmentCleanupService cleanupService;
@@ -39,7 +38,8 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
     public LambdaAssignmentServiceImpl(LambdaDao lambdaDao, LambdaAssignmentDao lambdaAssignmentDao,
         LambdaAssignmentCleanupService cleanupService,
         LocationDao locationDao, OrganizationDao organizationDao,
-        DevTeamDao teamDao, LambdaClientService lambdaClientService) {
+        DevTeamDao teamDao, LambdaClientService lambdaClientService, AccessService access) {
+        this.access = access;
         this.lambdaDao = lambdaDao;
         this.lambdaAssignmentDao = lambdaAssignmentDao;
         this.cleanupService = cleanupService;
@@ -61,6 +61,21 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
             throw new ObjectNotFoundException("Lambda not found");
         }
 
+        Location location = access.requireLocation(user, locationId);
+        if (location.locationType == LocationType.OPERATIONAL && testing) {
+            throw new AccessDeniedException("Test versions cannot run at operational locations");
+        }
+        if (!access.isAdmin(user) && !teamDao.checkDevTeamMember(lambda.devTeamId, user.userId)) {
+            throw new AccessDeniedException("Testing requires membership in the lambda team");
+        }
+        if (testing && !teamDao.checkDevTeamMember(lambda.devTeamId, user.userId)) {
+            var team = teamDao.getDevTeam(lambda.devTeamId);
+            if (team == null || team.organizationId != user.organizationId) throw new AccessDeniedException("Cannot test another organization's lambda");
+        }
+        List<LambdaVersion> versions = lambdaDao.getLambdaVersions(lambdaId, null, LambdaVersionStatus.ALL_ACTIVE);
+        if (!testing && (versions == null || versions.stream().noneMatch(v -> v.published && v.isRunnable()))) {
+            throw new AccessDeniedException("A production version is required");
+        }
         LambdaAssignment lambdaAssignment = new LambdaAssignment(lambdaId, locationId, testing);
         lambdaAssignmentDao.insertLambdaAssignment(lambdaAssignment);
         lambdaClientService.sendResetEvent(lambdaAssignment);
@@ -80,18 +95,8 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
             throw new ObjectNotFoundException("Lambda assignment not found");
         }
 
-        Location userLocation = locationDao.getLocationByUser(user);
-        boolean locationAccess = (userLocation != null) && (userLocation.locationId == lambdaAssignment.locationId);
+        requireAssignmentLocationAccess(user, lambdaAssignment);
         Lambda lambda = lambdaAssignment.lambda;
-        if (!locationAccess) {
-            if (!lambdaAssignment.testing) {
-                throw new AccessDeniedException("Lambda assignment is not accessible");
-            }
-
-            if (!teamDao.checkDevTeamMember(lambda.devTeamId, user.userId)) {
-                throw new AccessDeniedException("Lambda assignment is not accessible");
-            }
-        }
 
         List<LambdaVersion> lambdaVersions = lambdaDao.getLambdaVersions(lambda.lambdaId, null, LambdaVersionStatus.ALL_ACTIVE);
         lambda.lambdaVersions = lambdaVersions != null ? lambdaVersions : List.of();
@@ -117,51 +122,24 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
             throw new ObjectNotFoundException("Lambda not found");
         }
 
-        List<LambdaAssignment> assignments = new ArrayList<>();
-
-        Location location = locationDao.getLocationByUser(user);
-        if (location != null) {
-            List<LambdaAssignment> locationAssignments = lambdaAssignmentDao.getLambdaAssignments(lambdaId, location.locationId, false);
-            if (locationAssignments != null) assignments.addAll(locationAssignments);
-        }
-
-        boolean isDeveloper = teamDao.checkDevTeamMember(lambda.devTeamId, user.userId);
-        if (isDeveloper) {
-            List<LambdaAssignment> testingAssignments = lambdaAssignmentDao.getLambdaAssignments(lambdaId, null, true);
-            if (testingAssignments != null) assignments.addAll(testingAssignments);
-        }
-
-        Set<Integer> locationIds = new HashSet<>();
-        List<LambdaAssignment> uniqueAssignments = new ArrayList<>(assignments.size());
-        for (LambdaAssignment assignment : assignments) {
-            if (locationIds.add(assignment.locationId)) {
-                uniqueAssignments.add(assignment);
-            }
-        }
-        return uniqueAssignments;
+        List<LambdaAssignment> assignments = lambdaAssignmentDao.getLambdaAssignments(lambdaId, null, false);
+        if (assignments == null) return List.of();
+        return assignments.stream().filter(assignment -> canAccessAssignment(user, assignment)).toList();
     }
 
     @Override
     public List<LambdaAssignment> getLambdaAssignmentsForLocation(User user, int locationId) {
-        List<LambdaAssignment> locationAssignments = lambdaAssignmentDao.getLambdaAssignments(null, locationId, false);
-        if (locationAssignments == null) return List.of();
+        access.requireLocation(user, locationId);
+        List<LambdaAssignment> assignments = lambdaAssignmentDao.getLambdaAssignments(null, locationId, false);
+        if (assignments == null) return List.of();
+        return assignments.stream().filter(assignment -> canAccessAssignment(user, assignment)).toList();
+    }
 
-        // check if the user is assigned to the location
-        Location userLocation = locationDao.getLocationByUser(user);
-        if (userLocation != null && locationId == userLocation.locationId) {
-            return locationAssignments;
-        }
-
-        // select lambda assignments where the use is a lambda developer and testing=true
-        List<LambdaAssignment> assignments = new ArrayList<>(locationAssignments.size());
-        for (LambdaAssignment assignment : locationAssignments) {
-            if (!assignment.testing) continue;
-            Lambda lambda = lambdaDao.getLambda(assignment.lambdaId);
-            if (teamDao.checkDevTeamMember(lambda.devTeamId, user.userId)) {
-                assignments.add(assignment);
-            }
-        }
-        return assignments;
+    private boolean canAccessAssignment(User user, LambdaAssignment assignment) {
+        Location location = locationDao.getOrganizationLocation(user.organizationId, assignment.locationId);
+        if (!access.canAccess(user, location)) return false;
+        Lambda lambda = lambdaDao.getLambda(assignment.lambdaId);
+        return access.isAdmin(user) || (lambda != null && teamDao.checkDevTeamMember(lambda.devTeamId, user.userId));
     }
 
 
@@ -208,6 +186,10 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
         LambdaAssignment lambdaAssignment = lambdaAssignmentDao.getLambdaAssignment(lambdaAssignmentId);
         requireAssignmentLocationAccess(user, lambdaAssignment);
 
+        if (enabled && lambdaAssignment.testing
+            && access.requireLocation(user, lambdaAssignment.locationId).locationType == LocationType.OPERATIONAL) {
+            throw new AccessDeniedException("Test versions cannot run at operational locations");
+        }
         boolean wasActive = lambdaAssignment.checkActive();
         lambdaAssignment.setEnabled(enabled);
         if (!lambdaAssignmentDao.updateLambdaAssignment(lambdaAssignment)) {
@@ -229,7 +211,9 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
             logger.debug("cancelAssignmentsForLocation() locationId=" + locationId);
         }
         requireLocationAccess(user, locationId);
-        deleteAssignmentsForLocation(locationId);
+        for (LambdaAssignment assignment : getLambdaAssignmentsForLocation(user, locationId)) {
+            cancelLambdaAssignmentInternal(assignment.lambdaAssignmentId);
+        }
     }
 
     @Override
@@ -254,18 +238,9 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
             throw new ObjectNotFoundException("Lambda not found");
         }
 
-        Organization organization = organizationDao.getOrganization(user.organizationId);
-        boolean organizationAdmin = organization != null && organization.adminUserId != null
-            && organization.adminUserId == user.userId;
-        if (!organizationAdmin && !teamDao.checkDevTeamMember(lambda.devTeamId, user.userId)) {
-            throw new AccessDeniedException("Lambda assignments are not accessible");
-        }
-
-        List<Integer> lambdaAssignmentIds = lambdaAssignmentDao.getLambdaAssignmentIds(lambdaId);
-        if (lambdaAssignmentIds != null) {
-            for (int lambdaAssignmentId : lambdaAssignmentIds) {
-                cancelLambdaAssignmentInternal(lambdaAssignmentId);
-            }
+        List<LambdaAssignment> assignments = getLambdaAssignmentsForLambda(user, lambdaId);
+        for (LambdaAssignment assignment : assignments) {
+            cancelLambdaAssignmentInternal(assignment.lambdaAssignmentId);
         }
         logger.debug("<cancelAssignmentsForLambda()");
     }
@@ -274,14 +249,11 @@ public class LambdaAssignmentServiceImpl implements LambdaAssignmentService {
         if (lambdaAssignment == null) {
             throw new ObjectNotFoundException("Lambda assignment not found");
         }
-        requireLocationAccess(user, lambdaAssignment.locationId);
+        if (!canAccessAssignment(user, lambdaAssignment)) throw new AccessDeniedException("Lambda assignment is not accessible");
     }
 
     private void requireLocationAccess(User user, int locationId) {
-        Location userLocation = locationDao.getLocationByUser(user);
-        if (userLocation == null || userLocation.locationId != locationId) {
-            throw new AccessDeniedException("Location is not accessible");
-        }
+        access.requireLocation(user, locationId);
     }
 
 }

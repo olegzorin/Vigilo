@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="dev.olegz.vf.registry.dao.mapper.ResidentLocationMapper">
+
+    <resultMap id="residentLocationResultMap" type="dev.olegz.vf.registry.domain.account.LocationResident">
+        <id property="residentId" column="resident_id"/>
+        <id property="locationId" column="location_id"/>
+        <id property="startDate" column="start_date"/>
+        <result property="endDate" column="end_date"/>
+    </resultMap>
+
+    <select id="lockResident" resultType="Integer">
+        SELECT resident_id
+        FROM residents
+        WHERE resident_id = #{residentId}
+        FOR UPDATE
+    </select>
+
+    <!-- Insert only if the user has no active (not yet ended) location assignment. -->
+    <insert id="insertResidentLocation">
+        INSERT INTO resident_locations (resident_id, location_id, start_date, end_date)
+        SELECT #{residentId}, #{locationId}, #{startDate}, #{endDate}
+        WHERE NOT EXISTS (
+            SELECT 1 FROM resident_locations
+            WHERE resident_id = #{residentId}
+                AND (end_date IS NULL OR end_date &gt; NOW())
+        )
+    </insert>
+
+    <select id="selectResidentLocation" resultMap="residentLocationResultMap">
+        SELECT resident_id, location_id, start_date, end_date
+        FROM resident_locations
+        WHERE resident_id = #{residentId}
+            AND location_id = #{locationId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+    </select>
+
+    <select id="selectResidentLocationsByResident" resultMap="residentLocationResultMap">
+        SELECT resident_id, location_id, start_date, end_date
+        FROM resident_locations
+        WHERE resident_id = #{residentId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+        ORDER BY start_date
+    </select>
+
+    <select id="selectResidentLocationsByLocation" resultMap="residentLocationResultMap">
+        SELECT resident_id, location_id, start_date, end_date
+        FROM resident_locations
+        WHERE location_id = #{locationId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+        ORDER BY start_date
+    </select>
+
+    <select id="hasActiveAssignments" resultType="boolean">
+        SELECT EXISTS (
+            SELECT 1
+            FROM resident_locations
+            WHERE location_id = #{locationId}
+                AND (end_date IS NULL OR end_date &gt; NOW())
+        )
+    </select>
+
+    <update id="deleteResidentLocation">
+        UPDATE resident_locations SET end_date = NOW()
+        WHERE resident_id = #{residentId}
+            AND location_id = #{locationId}
+            AND (end_date IS NULL OR end_date &gt; NOW())
+    </update>
+
+</mapper>

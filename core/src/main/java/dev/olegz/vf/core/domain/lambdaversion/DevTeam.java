@@ -1,15 +1,20 @@
 package dev.olegz.vf.core.domain.lambdaversion;
 
+import dev.olegz.vf.registry.domain.account.Location;
+
 import java.util.List;
 
 /**
  * @author Oleg Zorin on 10/21/21
  */
 public class DevTeam {
+    public int organizationId;
+    public int testingLocationId;
     public int devTeamId;
     public int ownerUserId;
     public String name;
     public String description;
+    public List<Location> testingLocations = List.of();
     public List<DevTeamMember> members;
     public List<Lambda> lambdas;
     public int membersCount;

@@ -6,19 +6,19 @@
 <mapper namespace="dev.olegz.vf.registry.dao.mapper.UserMapper">
 
     <insert id="insertUser" useGeneratedKeys="true" keyProperty="userId">
-        INSERT INTO users (username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id)
-        VALUES (#{username}, #{password}, #{createdAt}, #{deletedAt}, #{firstName}, #{lastName}, #{email}, #{phone}, #{organizationId})
+        INSERT INTO users (username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id, account_type)
+        VALUES (#{username}, #{password}, #{createdAt}, #{deletedAt}, #{firstName}, #{lastName}, #{email}, #{phone}, #{organizationId}, #{accountType})
     </insert>
 
     <select id="selectUser" resultType="dev.olegz.vf.registry.domain.account.User">
-        SELECT user_id, username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id
+        SELECT user_id, username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id, account_type
         FROM users
         WHERE user_id = #{userId}
             AND deleted_at IS NULL
     </select>
 
     <select id="selectUsers" resultType="dev.olegz.vf.registry.domain.account.User">
-        SELECT user_id, username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id
+        SELECT user_id, username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id, account_type
         FROM users
         WHERE deleted_at IS NULL
             <choose>
@@ -41,19 +41,9 @@
         ORDER BY last_name, first_name, user_id
     </select>
 
-    <select id="selectUsersByLocation" resultType="dev.olegz.vf.registry.domain.account.User">
-        SELECT u.user_id, u.username, u.password, u.created_at, u.deleted_at,
-            u.first_name, u.last_name, u.email, u.phone, u.organization_id
-        FROM users u
-        JOIN user_locations ul ON ul.user_id = u.user_id
-        WHERE ul.location_id = #{locationId}
-            AND u.deleted_at IS NULL
-            AND (ul.end_date IS NULL OR ul.end_date &gt; NOW())
-        ORDER BY u.last_name, u.first_name, u.user_id
-    </select>
 
     <select id="selectUserByUsername" resultType="dev.olegz.vf.registry.domain.account.User">
-        SELECT user_id, username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id
+        SELECT user_id, username, password, created_at, deleted_at, first_name, last_name, email, phone, organization_id, account_type
         FROM users
         WHERE username = #{username}
             AND deleted_at IS NULL

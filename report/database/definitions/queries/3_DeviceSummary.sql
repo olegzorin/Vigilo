@@ -4,5 +4,5 @@ SELECT
     COUNT(1) n1
 FROM v_reports_devices di
     JOIN v_reports_locations l ON l.location_id = di.location_id
-    JOIN organizations_hierarchy h ON h.child_organization_id = l.organization_id AND h.parent_organization_id = #{p0}
+WHERE l.organization_id = #{p0}
 GROUP BY 1, 2

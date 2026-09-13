@@ -60,4 +60,16 @@ public class DevTeamController {
     {
         return devTeamAction.deleteDevTeamMember(contextFactory.current(), devTeamId, userId);
     }
+    @PutMapping("{devTeamId}/owner/{userId}")
+    public ActionResponse setOwner(@RequestHeader(API_KEY) String key, @PathVariable int devTeamId, @PathVariable int userId) {
+        return devTeamAction.setOwner(contextFactory.current(), devTeamId, userId);
+    }
+    @PutMapping("{devTeamId}/testing-locations/{locationId}")
+    public ActionResponse grantTestingLocation(@RequestHeader(API_KEY) String key, @PathVariable int devTeamId, @PathVariable int locationId) {
+        return devTeamAction.grantTestingLocation(contextFactory.current(), devTeamId, locationId);
+    }
+    @DeleteMapping("{devTeamId}/testing-locations/{locationId}")
+    public ActionResponse revokeTestingLocation(@RequestHeader(API_KEY) String key, @PathVariable int devTeamId, @PathVariable int locationId) {
+        return devTeamAction.revokeTestingLocation(contextFactory.current(), devTeamId, locationId);
+    }
 }

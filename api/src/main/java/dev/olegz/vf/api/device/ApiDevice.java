@@ -4,6 +4,7 @@ import dev.olegz.vf.registry.domain.device.Device;
 import dev.olegz.vf.registry.domain.device.LocationDevice;
 
 public class ApiDevice {
+    public final boolean testing;
     public final String deviceUuid;
     public final int organizationId;
     public final int typeId;
@@ -19,6 +20,7 @@ public class ApiDevice {
     }
 
     protected ApiDevice(Device device, LocationDevice assignment, boolean includeLocation) {
+        this.testing = device.testing;
         this.deviceUuid = device.deviceUuid;
         this.organizationId = device.organizationId;
         this.typeId = device.typeId;

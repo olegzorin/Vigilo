@@ -25,7 +25,7 @@ class DeviceActionTest {
     void adminListsOrganizationDevicesWithFiltersAndAssignment() {
         FakeDeviceDao deviceDao = new FakeDeviceDao();
         FakeLocationDao locationDao = new FakeLocationDao();
-        DeviceAction action = new DeviceAction(deviceDao, locationDao, new FakeAssignmentService());
+        DeviceAction action = new DeviceAction(access(), deviceDao, locationDao, new FakeAssignmentService());
 
         DeviceAction.Response response = action.listDevices(context(user(1, 7), true), 3, 10);
 
@@ -42,22 +42,23 @@ class DeviceActionTest {
     }
 
     @Test
-    void ordinaryUserListsOnlyDevicesAtCurrentLocation() {
+    void developerMustChooseAnAuthorizedTestingLocation() {
         FakeDeviceDao deviceDao = new FakeDeviceDao();
         FakeLocationDao locationDao = new FakeLocationDao();
-        DeviceAction action = new DeviceAction(deviceDao, locationDao, new FakeAssignmentService());
+        DeviceAction action = new DeviceAction(access(), deviceDao, locationDao, new FakeAssignmentService());
 
-        action.listDevices(context(user(2, 7), false), null, null);
+        assertThrows(AccessDeniedException.class, () -> action.listDevices(context(user(2, 7), false), null, null));
+        action.listDevices(context(user(2, 7), false), null, 10);
 
         assertEquals(10, deviceDao.locationId);
-        assertThrows(AccessDeniedException.class,
+        assertThrows(dev.olegz.vf.common.exception.ObjectNotFoundException.class,
             () -> action.listDevices(context(user(2, 7), false), null, 11));
     }
 
     @Test
     void adminGetsAnyOrganizationDeviceWithCurrentState() {
         FakeDeviceDao deviceDao = new FakeDeviceDao();
-        DeviceAction action = new DeviceAction(deviceDao, new FakeLocationDao(), new FakeAssignmentService());
+        DeviceAction action = new DeviceAction(access(), deviceDao, new FakeLocationDao(), new FakeAssignmentService());
 
         DeviceAction.DeviceDetailResponse response =
             action.getDevice(context(user(1, 7), true), "device-2");
@@ -75,7 +76,7 @@ class DeviceActionTest {
     @Test
     void ordinaryUserGetsOnlyDeviceAtCurrentLocation() {
         DeviceAction action =
-            new DeviceAction(new FakeDeviceDao(), new FakeLocationDao(), new FakeAssignmentService());
+            new DeviceAction(access(), new FakeDeviceDao(), new FakeLocationDao(), new FakeAssignmentService());
 
         DeviceAction.DeviceDetailResponse response =
             action.getDevice(context(user(2, 7), false), "device-1");
@@ -84,14 +85,14 @@ class DeviceActionTest {
         ApiDeviceLocation assignment = (ApiDeviceLocation) response.device.assignment;
         assertEquals("Home", assignment.location.locationName);
         assertEquals("locked", response.device.currentState.state.get("lockState"));
-        assertThrows(AccessDeniedException.class,
+        assertThrows(dev.olegz.vf.common.exception.ObjectNotFoundException.class,
             () -> action.getDevice(context(user(2, 7), false), "device-2"));
     }
 
     @Test
     void createAndUpdateRequireAdminAndPreserveOrganization() {
         FakeDeviceDao deviceDao = new FakeDeviceDao();
-        DeviceAction action = new DeviceAction(deviceDao, new FakeLocationDao(), new FakeAssignmentService());
+        DeviceAction action = new DeviceAction(access(), deviceDao, new FakeLocationDao(), new FakeAssignmentService());
         DeviceAction.CreateDeviceRequest create = new DeviceAction.CreateDeviceRequest();
         create.deviceUuid = "new-device";
         create.organizationId = 7;
@@ -175,8 +176,8 @@ class DeviceActionTest {
         public LocationDevice getLocationDevice(int organizationId, String deviceUuid, Integer locationId) {
             if ("device-2".equals(deviceUuid) && locationId != null) return null;
             if (!"device-1".equals(deviceUuid) && !"device-2".equals(deviceUuid)) return null;
-            int effectiveLocationId = locationId == null ? 10 : locationId;
-            if (effectiveLocationId != 10) return null;
+            int effectiveLocationId = locationId == null ? ("device-2".equals(deviceUuid) ? 11 : 10) : locationId;
+
             LocationDevice assignment = assignment(deviceUuid, effectiveLocationId);
             assignment.device = device(deviceUuid, organizationId);
             return assignment;
@@ -191,10 +192,6 @@ class DeviceActionTest {
             return locationId == 10 ? location(10, organizationId) : null;
         }
 
-        @Override
-        public Location getLocationByUser(User user) {
-            return location(10, user.organizationId);
-        }
 
         @Override public void insertLocation(Location location) { throw new UnsupportedOperationException(); }
         @Override public LocationCurrentState getLocationCurrentState(int organizationId, int locationId) { throw new UnsupportedOperationException(); }
@@ -235,6 +232,7 @@ class DeviceActionTest {
 
     private static Location location(int locationId, int organizationId) {
         Location location = new Location();
+        location.locationType = LocationType.TESTING;
         location.locationId = locationId;
         location.locationName = "Home";
         location.organizationId = organizationId;
@@ -242,6 +240,12 @@ class DeviceActionTest {
         return location;
     }
 
+    private static dev.olegz.vf.registry.service.account.AccessService access() {
+        OrganizationDao orgs = (OrganizationDao)java.lang.reflect.Proxy.newProxyInstance(OrganizationDao.class.getClassLoader(), new Class<?>[]{OrganizationDao.class}, (p,m,a) -> {
+            Organization org = new Organization(); org.adminUserId = 1; return org;
+        });
+        return new dev.olegz.vf.registry.service.account.AccessService(orgs, new FakeLocationDao(), List.of((u,l) -> u==2 && l==10));
+    }
     private static User user(int userId, int organizationId) {
         User user = new User();
         user.userId = userId;
